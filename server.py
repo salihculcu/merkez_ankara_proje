@@ -48,8 +48,9 @@ class KioskHandler(SimpleHTTPRequestHandler):
               f"({len(data.get('nodes', []))} nokta, {len(data.get('edges', []))} kenar)")
 
     def end_headers(self):
-        # Editor/kiosk gelistirme dongusunde JSON'lar hep taze gelsin
-        if self.path.endswith(".json"):
+        # Editor/kiosk gelistirme dongusunde JSON/JS hep taze gelsin
+        path = self.path.split("?", 1)[0]
+        if path.endswith((".json", ".js", ".css")):
             self.send_header("Cache-Control", "no-store")
         super().end_headers()
 

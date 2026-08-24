@@ -4,6 +4,7 @@ export const CONFIG = {
     model: './assets/models/MERKEZ_ANKARA_KAT_1_DENEME.glb',
     graph: './assets/data/graph.json',
     stores: './assets/data/stores.json',
+    // Draco wasm/js: lib/jsm/libs/draco/gltf/ (DRACOLoader DRACO_GLTF_CONFIG)
   },
 
   // Hitbox tespiti: nesne adı bu önekle başlıyorsa (HITBOX_ZARA) veya

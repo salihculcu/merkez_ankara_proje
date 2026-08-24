@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { DRACOLoader, DRACO_GLTF_CONFIG } from 'three/addons/loaders/DRACOLoader.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 
 /**
@@ -80,8 +81,14 @@ export class SceneManager {
   }
 
   async #loadModel(storeIds, onProgress) {
+    // gltf-transform Draco + WebP GLB: mesh decode için yerel DRACOLoader şart.
+    const dracoLoader = new DRACOLoader();
+    dracoLoader.setDecoderPath(DRACO_GLTF_CONFIG);
+    const loader = new GLTFLoader();
+    loader.setDRACOLoader(dracoLoader);
+
     const gltf = await new Promise((resolve, reject) => {
-      new GLTFLoader().load(
+      loader.load(
         this.config.paths.model,
         resolve,
         (xhr) => { if (onProgress) onProgress(xhr.loaded, xhr.total); },
