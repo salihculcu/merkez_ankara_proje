@@ -117,7 +117,7 @@ function placeStartMarker(engine, routeRenderer) {
   if (kiosk) {
     routeRenderer.setStartMarker({ x: kiosk.pos[0], y: kiosk.pos[1], z: kiosk.pos[2] });
   } else {
-    console.info('[main] Kiosk düğümü yok; "Buradasınız" işaretçisi editörde nokta eklenince görünür.');
+    console.info('[main] Kiosk düğümü yokk; "Buradasınız" işaretçisi editörde nokta eklenince görünür.');
   }
 }
 
