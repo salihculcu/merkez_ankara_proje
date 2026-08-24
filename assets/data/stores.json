@@ -1,0 +1,5 @@
+{
+  "ZARA": { "name": "Zara", "category": "Giyim", "floor": 1 },
+  "BOYNER": { "name": "Boyner", "category": "Giyim", "floor": 1 },
+  "BIGCHEFS": { "name": "Big Chefs", "category": "Yeme & İçme", "floor": 1 }
+}

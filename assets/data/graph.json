@@ -1,0 +1,221 @@
+{
+  "version": 1,
+  "meta": {
+    "building": "MERKEZ_ANKARA",
+    "exportedAt": "2026-08-22T15:08:53.077Z",
+    "units": "scene-units",
+    "note": "Bu dosya editÃ¶r modunda (?editor) Ã¼retilir ve 'Kaydet' dÃ¼ÄŸmesiyle doÄŸrudan bu dosyaya yazÄ±lÄ±r."
+  },
+  "nodes": [
+    {
+      "id": "NODE_KIOSK_START",
+      "type": "kiosk",
+      "floor": 1,
+      "pos": [
+        1.6,
+        -0.02,
+        -5.178
+      ]
+    },
+    {
+      "id": "DOOR_ZARA",
+      "type": "door",
+      "floor": 1,
+      "pos": [
+        8.163,
+        -0.02,
+        -2.455
+      ],
+      "storeId": "ZARA"
+    },
+    {
+      "id": "W_002",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        1.635,
+        -0.02,
+        -4.143
+      ]
+    },
+    {
+      "id": "W_003",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        2.901,
+        -0.02,
+        -3.977
+      ]
+    },
+    {
+      "id": "W_004",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        3.646,
+        -0.02,
+        -2.164
+      ]
+    },
+    {
+      "id": "W_005",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        7.329,
+        -0.02,
+        -2.169
+      ]
+    },
+    {
+      "id": "W_007",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        0.314,
+        -0.02,
+        -3.656
+      ]
+    },
+    {
+      "id": "W_008",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        -1.418,
+        -0.02,
+        -1.207
+      ]
+    },
+    {
+      "id": "W_009",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        -6.396,
+        -0.02,
+        0.765
+      ]
+    },
+    {
+      "id": "DOOR_BOYNER",
+      "type": "door",
+      "floor": 1,
+      "pos": [
+        -6.333,
+        -0.02,
+        1.812
+      ],
+      "storeId": "BOYNER"
+    },
+    {
+      "id": "W_010",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        -6.936,
+        -0.02,
+        -0.558
+      ]
+    },
+    {
+      "id": "W_011",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        -11.566,
+        -0.02,
+        -1.065
+      ]
+    },
+    {
+      "id": "W_012",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        -12.912,
+        -0.02,
+        -2.315
+      ]
+    },
+    {
+      "id": "DOOR_BIGCHEFS",
+      "type": "door",
+      "floor": 1,
+      "pos": [
+        -12.133,
+        -0.02,
+        -2.82
+      ],
+      "storeId": "BIGCHEFS"
+    }
+  ],
+  "edges": [
+    {
+      "from": "NODE_KIOSK_START",
+      "to": "W_002",
+      "type": "walk"
+    },
+    {
+      "from": "W_002",
+      "to": "W_003",
+      "type": "walk"
+    },
+    {
+      "from": "W_003",
+      "to": "W_004",
+      "type": "walk"
+    },
+    {
+      "from": "W_004",
+      "to": "W_005",
+      "type": "walk"
+    },
+    {
+      "from": "W_007",
+      "to": "W_008",
+      "type": "walk"
+    },
+    {
+      "from": "W_008",
+      "to": "W_009",
+      "type": "walk"
+    },
+    {
+      "from": "W_002",
+      "to": "W_007",
+      "type": "walk"
+    },
+    {
+      "from": "W_009",
+      "to": "DOOR_BOYNER",
+      "type": "walk"
+    },
+    {
+      "from": "W_005",
+      "to": "DOOR_ZARA",
+      "type": "walk"
+    },
+    {
+      "from": "W_010",
+      "to": "W_011",
+      "type": "walk"
+    },
+    {
+      "from": "W_012",
+      "to": "W_011",
+      "type": "walk"
+    },
+    {
+      "from": "DOOR_BIGCHEFS",
+      "to": "W_012",
+      "type": "walk"
+    },
+    {
+      "from": "W_008",
+      "to": "W_010",
+      "type": "walk"
+    }
+  ]
+}

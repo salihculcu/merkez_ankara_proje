@@ -1,0 +1,10 @@
+# Canonical model lives under assets/models/
+/MERKEZ_ANKARA_KAT_1_DENEME.glb
+
+# Editor / Python leftovers
+*.bak
+__pycache__/
+*.pyc
+.DS_Store
+Thumbs.db
+desktop.ini

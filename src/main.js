@@ -1,0 +1,153 @@
+import { CONFIG, STRINGS } from './config.js';
+import { EventBus } from './EventBus.js';
+import { SceneManager } from './SceneManager.js';
+import { InteractionManager } from './InteractionManager.js';
+import { PathfindingEngine } from './PathfindingEngine.js';
+import { RouteRenderer } from './RouteRenderer.js';
+import { CameraDirector } from './CameraDirector.js';
+import { UIManager } from './UIManager.js';
+
+const isEditorMode = new URLSearchParams(location.search).has('editor');
+
+setupErrorOverlay();
+boot().catch((err) => {
+  console.error('[main] Başlatma hatası:', err);
+  showFatal(err);
+});
+
+async function boot() {
+  const bus = new EventBus();
+  const ui = new UIManager(bus, CONFIG);
+
+  // Mağaza meta verisi (hitbox eşleştirmesi için kimlikler burada tanımlı)
+  let storesMeta = {};
+  try {
+    const res = await fetch(CONFIG.paths.stores, { cache: 'no-store' });
+    if (res.ok) storesMeta = await res.json();
+  } catch {
+    console.warn('[main] stores.json okunamadı; yalnızca HITBOX_ öneki kullanılacak.');
+  }
+  const storeIds = Object.keys(storesMeta);
+
+  // 3B sahne
+  const sceneManager = new SceneManager(document.getElementById('app'), CONFIG);
+  await sceneManager.init({
+    storeIds,
+    onProgress: (loaded, total) => ui.setLoadingProgress(loaded, total),
+  });
+
+  // Navigasyon motoru
+  const engine = new PathfindingEngine(CONFIG);
+  try {
+    await engine.load(CONFIG.paths.graph);
+  } catch (err) {
+    console.warn('[main] graph.json yüklenemedi, boş graf ile devam:', err.message);
+  }
+
+  const routeRenderer = new RouteRenderer(sceneManager, CONFIG);
+  const camera = new CameraDirector(sceneManager, CONFIG);
+  camera.setHomeFromBounds(sceneManager.bounds);
+
+  sceneManager.start();
+
+  if (isEditorMode) {
+    const { GraphEditor } = await import('./editor/GraphEditor.js');
+    const editor = new GraphEditor(sceneManager, engine, routeRenderer, CONFIG);
+    const hitboxIds = sceneManager.hitboxes.map((h) => h.userData.storeId);
+    await editor.init([...new Set([...storeIds, ...hitboxIds])]);
+    ui.hideLoading();
+    return;
+  }
+
+  // ---------- Kiosk modu ----------
+  new InteractionManager(sceneManager, bus);
+  const hitboxStoreIds = sceneManager.hitboxes.map((h) => h.userData.storeId);
+  ui.init(storesMeta, hitboxStoreIds);
+
+  placeStartMarker(engine, routeRenderer);
+  if (engine.isEmpty) ui.toast(STRINGS.graphEmpty, 'warn', 6000);
+
+  let activeStoreId = null;
+
+  bus.on('storeSelected', ({ storeId }) => {
+    const result = engine.findPathToStore(storeId, { accessible: ui.accessibility });
+    if (!result.ok) {
+      ui.toast(errorMessage(result.error), 'warn');
+      return;
+    }
+    activeStoreId = storeId;
+    routeRenderer.draw(result.points);
+    camera.frameRoute(result.points);
+    ui.showStoreCard(storeId, { distance: result.distance, accessible: ui.accessibility });
+  });
+
+  bus.on('accessibilityChanged', ({ accessible }) => {
+    if (!activeStoreId) return;
+    const result = engine.findPathToStore(activeStoreId, { accessible });
+    if (!result.ok) {
+      // Engelsiz rota yoksa mevcut rota korunur, düğme eski hâline döner
+      ui.toast(STRINGS.accessibleRouteNotFound, 'warn');
+      ui.setAccessibility(!accessible);
+      return;
+    }
+    routeRenderer.draw(result.points);
+    camera.frameRoute(result.points);
+    ui.showStoreCard(activeStoreId, { distance: result.distance, accessible });
+  });
+
+  bus.on('routeCleared', () => {
+    activeStoreId = null;
+    routeRenderer.clear();
+    camera.goHome();
+  });
+
+  bus.on('idle', () => {
+    activeStoreId = null;
+    routeRenderer.clear();
+    ui.hideCard();
+    ui.setAccessibility(false);
+    camera.goHome();
+  });
+
+  ui.hideLoading();
+}
+
+function placeStartMarker(engine, routeRenderer) {
+  const kiosk = engine.getNode(CONFIG.graph.kioskNodeId);
+  if (kiosk) {
+    routeRenderer.setStartMarker({ x: kiosk.pos[0], y: kiosk.pos[1], z: kiosk.pos[2] });
+  } else {
+    console.info('[main] Kiosk düğümü yok; "Buradasınız" işaretçisi editörde nokta eklenince görünür.');
+  }
+}
+
+function errorMessage(code) {
+  return {
+    GRAPH_EMPTY: STRINGS.graphEmpty,
+    KIOSK_NODE_MISSING: STRINGS.kioskNodeMissing,
+    KIOSK_DISCONNECTED: STRINGS.kioskDisconnected,
+    STORE_NO_DOOR: STRINGS.storeNoDoor,
+    DOOR_DISCONNECTED: STRINGS.doorDisconnected,
+  }[code] ?? STRINGS.routeNotFound;
+}
+
+// ---------- Hata görünürlüğü (kiosk sahada ayıklama için) ----------
+
+function setupErrorOverlay() {
+  if (!CONFIG.debug.errorOverlay) return;
+  const overlay = document.getElementById('error-overlay');
+  const append = (msg) => {
+    overlay.classList.remove('hidden');
+    overlay.textContent += `${msg}\n\n`;
+  };
+  window.addEventListener('error', (e) => append(`HATA: ${e.message}\n  ${e.filename}:${e.lineno}`));
+  window.addEventListener('unhandledrejection', (e) => append(`PROMISE HATASI: ${e.reason?.message ?? e.reason}`));
+}
+
+function showFatal(err) {
+  const sub = document.querySelector('.loading-sub');
+  if (sub) {
+    sub.textContent = `Başlatılamadı: ${err.message}`;
+    sub.style.color = '#ffb3c0';
+  }
+}
