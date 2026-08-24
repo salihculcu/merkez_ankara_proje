@@ -31,7 +31,7 @@ export const CONFIG = {
     yOffset: 0.12,            // zeminden yükseklik (sahne birimi)
     radiusFactor: 0.0032,     // tüp yarıçapı = sahne çapraz uzunluğu * bu katsayı
     minRadius: 0.05,
-    baseColor: 0x22d3ee,
+    baseColor: 0xe08035,      // bakır/terrakota — marka paletiyle uyumlu sıcak vurgu
     baseOpacity: 0.92,
     flowSpeed: 1.4,           // ok akış hızı (uv/sn)
     arrowSpacingRadii: 7,     // oklar arası mesafe (yarıçap katı)
@@ -41,6 +41,31 @@ export const CONFIG = {
   markers: {
     startColor: 0x22d3ee,     // "Buradasınız"
     destColor: 0xff5470,      // hedef pini
+  },
+
+  // Gece/Gündüz ortam ayarları (geçiş yumuşak yapılır)
+  dayNight: {
+    transitionSec: 1.4,
+    day: {
+      // Marka paletiyle uyumlu sıcak, açık gündüz zemini (UI: #F4F1EC ailesi)
+      bg: 0xe9e4db, hemi: 0.7, hemiSky: 0xf5efe6, hemiGround: 0x8a8074,
+      dir: 1.15, dirColor: 0xfff2df, env: 1.0, exposure: 1.05,
+    },
+    night: {
+      bg: 0x05080f, hemi: 0.14, hemiSky: 0x3a5a8c, hemiGround: 0x05080a,
+      dir: 0.18, dirColor: 0x8fb3ff, env: 0.12, exposure: 0.92,
+    },
+  },
+
+  // Sokak lambaları (editörde yerleştirilir, gece modunda yanar)
+  lamps: {
+    height: null,            // null = sahne ölçeğinden otomatik hesapla
+    color: 0xffd9a0,         // sıcak sodyum ışığı
+    intensity: 14,           // PointLight şiddeti (gece)
+    distanceFactor: 9,       // ışık menzili = lamba boyu * bu katsayı
+    maxRealLights: 24,       // bu sayıdan sonrası gerçek ışık yerine güçlü sahte havuz alır (performans)
+    poolRadiusFactor: 2.6,   // sahte ışık havuzu yarıçapı = lamba boyu * bu katsayı
+    transitionSec: 1.0,
   },
 
   camera: {

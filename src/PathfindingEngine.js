@@ -33,6 +33,7 @@ export class PathfindingEngine {
       meta: graphData.meta ?? {},
       nodes: graphData.nodes ?? [],
       edges: graphData.edges ?? [],
+      lamps: graphData.lamps ?? [], // sokak lambaları (rota hesabına girmez)
     };
     this.#buildIndex();
   }

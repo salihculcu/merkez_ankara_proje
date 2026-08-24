@@ -14,13 +14,14 @@ import * as THREE from 'three';
  * Taslak her değişiklikte localStorage'a yazılır; "JSON İndir" ile graph.json üretilir.
  */
 export class GraphEditor {
-  constructor(sceneManager, engine, routeRenderer, config) {
+  constructor(sceneManager, engine, routeRenderer, lampSystem, config) {
     this.sm = sceneManager;
     this.engine = engine;
     this.routeRenderer = routeRenderer;
+    this.lampSystem = lampSystem;
     this.config = config;
 
-    this.graph = { version: 1, meta: {}, nodes: [], edges: [] };
+    this.graph = { version: 1, meta: {}, nodes: [], edges: [], lamps: [] };
     this.mode = 'select';
     this.selection = null;      // { kind:'node', id } | { kind:'edge', index }
     this.chainNodeId = null;    // otomatik bağlama / kenar zinciri kaynağı
@@ -94,6 +95,7 @@ export class GraphEditor {
       meta: g.meta ?? { building: 'MERKEZ_ANKARA', units: 'scene-units' },
       nodes: g.nodes ?? [],
       edges: g.edges ?? [],
+      lamps: g.lamps ?? [],
     };
   }
 
@@ -108,6 +110,7 @@ export class GraphEditor {
   #commit(autosave = true) {
     this.engine.setGraph(this.graph);
     this.#rebuildVisuals();
+    this.lampSystem.setLamps(this.graph.lamps);
     this.#refreshStats();
     if (autosave) this.#scheduleAutosave();
   }
@@ -195,6 +198,7 @@ export class GraphEditor {
       obj.material.color.set(selected ? 0xffffff
         : (this.config.editor.edgeColors[this.graph.edges[obj.userData.edgeIndex]?.type ?? 'walk'] ?? 0x94a3b8));
     }
+    this.lampSystem.setHighlight(this.selection?.kind === 'lamp' ? this.selection.id : null);
   }
 
   // ---------------- Pointer etkileşimi ----------------
@@ -208,14 +212,22 @@ export class GraphEditor {
 
   #onPointerDown(e) {
     if (!e.isPrimary) return;
-    this.#drag = { x: e.clientX, y: e.clientY, t: performance.now(), moved: false, nodeId: null };
+    this.#drag = { x: e.clientX, y: e.clientY, t: performance.now(), moved: false, kind: null, id: null };
 
-    // Seç modunda bir noktanın üzerinde basılıyorsa sürükleme adayı olur
+    // Seç modunda bir nokta/lamba üzerinde basılıyorsa sürükleme adayı olur
     if (this.mode === 'select') {
       const node = this.#pickNode(e);
       if (node) {
-        this.#drag.nodeId = node.userData.nodeId;
+        this.#drag.kind = 'node';
+        this.#drag.id = node.userData.nodeId;
         this.sm.controls.enabled = false; // kamera değil nokta hareket etsin
+      } else {
+        const lamp = this.#pickLamp(e);
+        if (lamp) {
+          this.#drag.kind = 'lamp';
+          this.#drag.id = lamp.userData.lampId;
+          this.sm.controls.enabled = false;
+        }
       }
     }
   }
@@ -223,15 +235,23 @@ export class GraphEditor {
   #onPointerMove(e) {
     if (!this.#drag || !e.isPrimary) return;
     if (Math.hypot(e.clientX - this.#drag.x, e.clientY - this.#drag.y) > 8) this.#drag.moved = true;
+    if (!this.#drag.id || !this.#drag.moved) return;
 
-    if (this.#drag.nodeId && this.#drag.moved) {
-      const node = this.graph.nodes.find((n) => n.id === this.#drag.nodeId);
+    if (this.#drag.kind === 'node') {
+      const node = this.graph.nodes.find((n) => n.id === this.#drag.id);
       const point = this.sm.raycastToPlane(e.clientX, e.clientY, node.pos[1]);
       if (point) {
         node.pos = [point.x, node.pos[1], point.z];
         const mesh = this.#nodeMeshes.get(node.id);
         mesh.position.set(point.x, node.pos[1] + this.nodeRadius, point.z);
         this.#rebuildEdgesOnly();
+      }
+    } else if (this.#drag.kind === 'lamp') {
+      const lamp = this.graph.lamps.find((l) => l.id === this.#drag.id);
+      const point = this.sm.raycastToPlane(e.clientX, e.clientY, lamp.pos[1]);
+      if (point) {
+        lamp.pos = [point.x, lamp.pos[1], point.z];
+        this.lampSystem.updateLampPosition(lamp.id, { x: point.x, y: lamp.pos[1], z: point.z });
       }
     }
   }
@@ -251,8 +271,9 @@ export class GraphEditor {
     this.#drag = null;
     this.sm.controls.enabled = true;
 
-    if (drag.nodeId && drag.moved) { // sürükleme bitti
-      this.#selectNode(drag.nodeId);
+    if (drag.id && drag.moved) { // sürükleme bitti
+      if (drag.kind === 'node') this.#selectNode(drag.id);
+      else this.#selectLamp(drag.id);
       this.#commit();
       return;
     }
@@ -269,6 +290,11 @@ export class GraphEditor {
 
   #pickNode(e) {
     const hits = this.sm.raycastFromScreen(e.clientX, e.clientY, [...this.#nodeMeshes.values()]);
+    return hits[0]?.object ?? null;
+  }
+
+  #pickLamp(e) {
+    const hits = this.sm.raycastFromScreen(e.clientX, e.clientY, this.lampSystem.pickMeshes);
     return hits[0]?.object ?? null;
   }
 
@@ -290,6 +316,8 @@ export class GraphEditor {
   #tapSelect(e) {
     const node = this.#pickNode(e);
     if (node) { this.#selectNode(node.userData.nodeId); return; }
+    const lamp = this.#pickLamp(e);
+    if (lamp) { this.#selectLamp(lamp.userData.lampId); return; }
     const edge = this.#pickEdge(e);
     if (edge) { this.#selectEdge(edge.userData.edgeIndex); return; }
     this.#clearSelection();
@@ -301,6 +329,19 @@ export class GraphEditor {
 
     const type = this.#el.nodeType.value;
     let id;
+
+    // Lambalar graf düğümü değildir: rota ağına girmez, ayrı listede tutulur
+    if (type === 'lamp') {
+      id = this.#nextLampId();
+      this.graph.lamps.push({ id, pos: [point.x, point.y, point.z] });
+      this.#commit();
+      this.#selectLamp(id);
+      const real = this.config.lamps.maxRealLights;
+      this.#setStatus(this.graph.lamps.length > real
+        ? `${id} eklendi (${this.graph.lamps.length}. lamba — ilk ${real} tanesi gerçek ışık verir).`
+        : `${id} eklendi. Gece modunda yanar.`);
+      return;
+    }
 
     if (type === 'kiosk') {
       const existing = this.graph.nodes.find((n) => n.type === 'kiosk');
@@ -381,6 +422,8 @@ export class GraphEditor {
   #tapDelete(e) {
     const node = this.#pickNode(e);
     if (node) { this.#deleteNode(node.userData.nodeId); return; }
+    const lamp = this.#pickLamp(e);
+    if (lamp) { this.#deleteLamp(lamp.userData.lampId); return; }
     const edge = this.#pickEdge(e);
     if (edge) {
       this.graph.edges.splice(edge.userData.edgeIndex, 1);
@@ -388,6 +431,13 @@ export class GraphEditor {
       this.#commit();
       this.#setStatus('Kenar silindi.');
     }
+  }
+
+  #deleteLamp(id) {
+    this.graph.lamps = this.graph.lamps.filter((l) => l.id !== id);
+    this.#clearSelection();
+    this.#commit();
+    this.#setStatus(`${id} silindi.`);
   }
 
   #deleteNode(id) {
@@ -435,6 +485,12 @@ export class GraphEditor {
     this.#refreshSelectionInfo();
   }
 
+  #selectLamp(id) {
+    this.selection = { kind: 'lamp', id };
+    this.#applySelectionHighlight();
+    this.#refreshSelectionInfo();
+  }
+
   #selectEdge(index) {
     this.selection = { kind: 'edge', index };
     const edge = this.graph.edges[index];
@@ -455,6 +511,18 @@ export class GraphEditor {
   #refreshSelectionInfo() {
     const el = this.#el.selectionInfo;
     if (!this.selection) { el.textContent = 'Seçim yok.'; return; }
+
+    if (this.selection.kind === 'lamp') {
+      const lamp = this.graph.lamps.find((l) => l.id === this.selection.id);
+      if (!lamp) { el.textContent = 'Seçim yok.'; return; }
+      const order = this.graph.lamps.indexOf(lamp) + 1;
+      const real = order <= this.config.lamps.maxRealLights;
+      el.textContent =
+        `id: ${lamp.id}\ntip: sokak lambası` +
+        `\npos: [${lamp.pos.map((v) => v.toFixed(2)).join(', ')}]` +
+        `\nışık: ${real ? 'gerçek ışık' : 'sadece görsel parlama'}`;
+      return;
+    }
 
     if (this.selection.kind === 'node') {
       const n = this.graph.nodes.find((x) => x.id === this.selection.id);
@@ -492,6 +560,7 @@ export class GraphEditor {
           <button class="ed-mode-btn" data-mode="delete">Sil</button>
           <button class="ed-mode-btn" data-mode="test">Rota Test</button>
         </div>
+        <button class="ed-btn" id="ed-2d">2B Kuş Bakışı</button>
         <div id="ed-status"></div>
       </div>
 
@@ -504,6 +573,7 @@ export class GraphEditor {
           <option value="elevator">Asansör</option>
           <option value="escalator">Yürüyen merdiven</option>
           <option value="stairs">Merdiven</option>
+          <option value="lamp">Sokak lambası (gece ışığı)</option>
         </select>
         <div class="ed-row" id="ed-store-row" style="display:none">
           <label class="inline" for="ed-store-select">Mağaza:</label>
@@ -551,12 +621,12 @@ export class GraphEditor {
           <button class="ed-btn" id="ed-copy">Kopyala</button>
           <button class="ed-btn" id="ed-import">Dosyadan Yükle</button>
         </div>
-        <button class="ed-btn danger" id="ed-reset">Taslağı Sıfırla</button>
+        <button class="ed-btn danger" id="ed-reset">Sıfırla (tümünü sil, dosyayı boşalt)</button>
         <input type="file" id="ed-file" accept=".json,application/json" style="display:none">
       </div>
 
       <div style="font-size:11.5px;color:var(--text-dim)">
-        Kısayollar: Delete sil · Esc zinciri bırak · H hitbox · G ızgara
+        Kısayollar: Delete sil · Esc zinciri bırak · H hitbox · G ızgara · 2 kuş bakışı
       </div>`;
     document.body.appendChild(panel);
 
@@ -603,6 +673,9 @@ export class GraphEditor {
     this.#el.oneWay.addEventListener('change', applyToSelectedEdge);
     this.#el.edgeCost.addEventListener('change', applyToSelectedEdge);
 
+    this.#el.btn2d = panel.querySelector('#ed-2d');
+    this.#el.btn2d.addEventListener('click', () => this.#toggle2D());
+
     panel.querySelector('#ed-delete-selected').addEventListener('click', () => this.#deleteSelection());
     panel.querySelector('#ed-clear-route').addEventListener('click', () => {
       this.routeRenderer.clear();
@@ -628,17 +701,80 @@ export class GraphEditor {
       this.#el.file.value = '';
     });
     panel.querySelector('#ed-reset').addEventListener('click', async () => {
-      if (!confirm('Taslak silinip graph.json dosyasındaki son hâle dönülecek. Emin misiniz?')) return;
+      if (!confirm('TÜM noktalar ve kenarlar silinecek, graph.json dosyası da boşaltılacak.\nEmin misiniz?')) return;
+      this.graph = this.#normalize({});
       localStorage.removeItem(this.config.editor.autosaveKey);
-      try {
-        const res = await fetch(this.config.paths.graph, { cache: 'no-store' });
-        this.graph = this.#normalize(res.ok ? await res.json() : {});
-      } catch { this.graph = this.#normalize({}); }
       this.#clearSelection();
       this.chainNodeId = null;
+      this.routeRenderer.clear();
       this.#commit(false);
-      this.#setStatus('Taslak sıfırlandı.');
+      await this.#saveToServer('Graf sıfırlandı ve graph.json boşaltıldı.');
     });
+  }
+
+  // ---------------- 2B kuş bakışı görünümü ----------------
+
+  #view2D = false;
+  #savedView = null;
+
+  /**
+   * Kamerayı tam tepeden bakışa kilitler (CAD/dekorasyon programlarındaki 2B mod gibi):
+   * dönme kapanır, sol sürükleme kaydırma olur, dar FOV ile perspektif düzleşir.
+   * Tekrar basınca önceki 3B görünüm aynen geri gelir.
+   */
+  #toggle2D() {
+    this.#view2D = !this.#view2D;
+    this.#el.btn2d.classList.toggle('active', this.#view2D);
+    const cam = this.sm.camera;
+    const c = this.sm.controls;
+
+    if (this.#view2D) {
+      this.#savedView = {
+        pos: cam.position.clone(),
+        target: c.target.clone(),
+        fov: cam.fov,
+        maxPolar: c.maxPolarAngle,
+        maxDist: c.maxDistance,
+        mouseLeft: c.mouseButtons.LEFT,
+        touchOne: c.touches.ONE,
+      };
+
+      const center = this.sm.bounds.getCenter(new THREE.Vector3());
+      const size = this.sm.bounds.getSize(new THREE.Vector3());
+      const maxDim = Math.max(size.x, size.z);
+
+      // Dar FOV = ortografiğe yakın, düz plan görünümü; mesafe plana göre kadrajlanır
+      cam.fov = 20;
+      const dist = (maxDim / 2) / Math.tan(THREE.MathUtils.degToRad(cam.fov / 2)) * 1.12;
+      c.maxDistance = Math.max(c.maxDistance, dist * 2.5);
+
+      cam.position.set(center.x, this.sm.floorY + dist, center.z + dist * 0.001);
+      c.target.copy(center);
+      c.minPolarAngle = 0;
+      c.maxPolarAngle = 0.002;   // tepeden bakış kilidi
+      c.enableRotate = false;
+      c.mouseButtons.LEFT = THREE.MOUSE.PAN;  // sol sürükleme: haritayı kaydır
+      c.touches.ONE = THREE.TOUCH.PAN;
+
+      cam.updateProjectionMatrix();
+      c.update();
+      this.#setStatus('2B kuş bakışı açık — sürükle: kaydır · tekerlek: yakınlaş/uzaklaş.');
+    } else {
+      const s = this.#savedView;
+      cam.fov = s.fov;
+      cam.position.copy(s.pos);
+      c.target.copy(s.target);
+      c.minPolarAngle = 0;
+      c.maxPolarAngle = s.maxPolar;
+      c.maxDistance = s.maxDist;
+      c.enableRotate = true;
+      c.mouseButtons.LEFT = s.mouseLeft;
+      c.touches.ONE = s.touchOne;
+
+      cam.updateProjectionMatrix();
+      c.update();
+      this.#setStatus('3B görünüme dönüldü.');
+    }
   }
 
   #setMode(mode, btn) {
@@ -674,6 +810,7 @@ export class GraphEditor {
       if (e.key.toLowerCase() === 'g') {
         this.#gridHelper.visible = !this.#gridHelper.visible;
       }
+      if (e.key === '2') this.#toggle2D();
     });
   }
 
@@ -682,6 +819,7 @@ export class GraphEditor {
   #deleteSelection() {
     if (!this.selection) return;
     if (this.selection.kind === 'node') this.#deleteNode(this.selection.id);
+    else if (this.selection.kind === 'lamp') this.#deleteLamp(this.selection.id);
     else {
       this.graph.edges.splice(this.selection.index, 1);
       this.#clearSelection();
@@ -705,12 +843,16 @@ export class GraphEditor {
         pos: n.pos.map((v) => Math.round(v * 1000) / 1000),
       })),
       edges: this.graph.edges,
+      lamps: this.graph.lamps.map((l) => ({
+        ...l,
+        pos: l.pos.map((v) => Math.round(v * 1000) / 1000),
+      })),
     };
     return JSON.stringify(out, null, 2);
   }
 
   /** Grafı sunucudaki assets/data/graph.json dosyasına doğrudan yazar (server.py gerekir). */
-  async #saveToServer() {
+  async #saveToServer(successMsg = '✓ graph.json dosyasına kaydedildi. Kiosk ekranı yenilendiğinde bu ağı kullanır.') {
     try {
       const res = await fetch('/api/save-graph', {
         method: 'POST',
@@ -718,7 +860,7 @@ export class GraphEditor {
         body: this.#exportJson(),
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      this.#setStatus('✓ graph.json dosyasına kaydedildi. Kiosk ekranı yenilendiğinde bu ağı kullanır.');
+      this.#setStatus(successMsg);
     } catch {
       this.#setStatus('Sunucu kaydı desteklemiyor (server.py ile başlatın) — dosya indiriliyor.');
       this.#download();
@@ -737,7 +879,7 @@ export class GraphEditor {
 
   #refreshStats() {
     this.#el.counts.textContent =
-      `${this.graph.nodes.length} nokta · ${this.graph.edges.length} kenar`;
+      `${this.graph.nodes.length} nokta · ${this.graph.edges.length} kenar · ${this.graph.lamps.length} lamba`;
     const warnings = this.engine.validate();
     this.#el.warnings.textContent = warnings.length
       ? `⚠ ${warnings.slice(0, 6).join('\n⚠ ')}${warnings.length > 6 ? `\n… +${warnings.length - 6}` : ''}`
@@ -764,5 +906,14 @@ export class GraphEditor {
       }
     }
     return `${prefix}${String(max + 1).padStart(3, '0')}`;
+  }
+
+  #nextLampId() {
+    let max = 0;
+    for (const l of this.graph.lamps) {
+      const num = parseInt(l.id.replace('LAMP_', ''), 10);
+      if (!Number.isNaN(num)) max = Math.max(max, num);
+    }
+    return `LAMP_${String(max + 1).padStart(3, '0')}`;
   }
 }

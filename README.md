@@ -67,6 +67,17 @@ assets/
   ikisinden birini sağlamanız yeterlidir; `stores.json`'a kaydını eklemeyi unutmayın.
 - glTF dışa aktarımında **object** adı sahneye taşınır (mesh datablock adı değil).
 
+## Gece / Gündüz modu ve sokak lambaları
+
+- Üst bardaki güneş/ay düğmesi ortamı yumuşak geçişle gece moduna alır
+  (gökyüzü kararır, ay ışığı tonu gelir). Şimdilik elle; saat entegrasyonu planlıdır.
+- Editörde Nokta Tipi olarak **Sokak lambası** seçip zemine dokunarak lamba dikilir;
+  lambalar `graph.json` içindeki `lamps` dizisinde saklanır (Kaydet/Sıfırla dahildir),
+  Seç/Taşı ile sürüklenir, Sil ile kaldırılır.
+- Gece modunda lamba başlıkları parlar, zemine ışık havuzu düşer ve gerçek ışık verir.
+  Performans için ilk `lamps.maxRealLights` (varsayılan 10) lamba gerçek `PointLight`
+  taşır; fazlası yalnızca görsel parlama alır. Renk/şiddet/menzil `config.js`'ten ayarlanır.
+
 ## Kalibrasyon ve ayarlar (`src/config.js`)
 
 - `units.metersPerUnit` — editörde bilinen bir mesafeyi (örn. iki kolon arası) ölçüp

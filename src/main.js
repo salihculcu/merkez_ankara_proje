@@ -5,6 +5,7 @@ import { InteractionManager } from './InteractionManager.js';
 import { PathfindingEngine } from './PathfindingEngine.js';
 import { RouteRenderer } from './RouteRenderer.js';
 import { CameraDirector } from './CameraDirector.js';
+import { LampSystem } from './LampSystem.js';
 import { UIManager } from './UIManager.js';
 
 const isEditorMode = new URLSearchParams(location.search).has('editor');
@@ -48,16 +49,22 @@ async function boot() {
   const camera = new CameraDirector(sceneManager, CONFIG);
   camera.setHomeFromBounds(sceneManager.bounds);
 
+  const lampSystem = new LampSystem(sceneManager, CONFIG);
+  wireDayNightToggle(sceneManager, lampSystem);
+
   sceneManager.start();
 
   if (isEditorMode) {
     const { GraphEditor } = await import('./editor/GraphEditor.js');
-    const editor = new GraphEditor(sceneManager, engine, routeRenderer, CONFIG);
+    const editor = new GraphEditor(sceneManager, engine, routeRenderer, lampSystem, CONFIG);
     const hitboxIds = sceneManager.hitboxes.map((h) => h.userData.storeId);
     await editor.init([...new Set([...storeIds, ...hitboxIds])]);
     ui.hideLoading();
     return;
   }
+
+  // Kiosk modunda lambalar graph.json'dan gelir
+  lampSystem.setLamps(engine.graph.lamps ?? []);
 
   // ---------- Kiosk modu ----------
   new InteractionManager(sceneManager, bus);
@@ -105,11 +112,29 @@ async function boot() {
     activeStoreId = null;
     routeRenderer.clear();
     ui.hideCard();
+    ui.closePanel();
     ui.setAccessibility(false);
     camera.goHome();
   });
 
   ui.hideLoading();
+}
+
+// Gece/Gündüz düğmesi hem kiosk hem editör modunda çalışır.
+function wireDayNightToggle(sceneManager, lampSystem) {
+  const btn = document.getElementById('daynight-toggle');
+  const label = document.getElementById('daynight-label');
+  let night = false;
+
+  const apply = (value) => {
+    night = value;
+    document.body.classList.toggle('night-mode', night);
+    btn.setAttribute('aria-pressed', String(night));
+    label.textContent = night ? 'Gece' : 'Gündüz';
+    sceneManager.setNight(night);
+    lampSystem.setNight(night);
+  };
+  btn.addEventListener('click', () => apply(!night));
 }
 
 function placeStartMarker(engine, routeRenderer) {

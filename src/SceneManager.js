@@ -43,8 +43,10 @@ export class SceneManager {
     this.container.appendChild(this.renderer.domElement);
     this.canvas = this.renderer.domElement;
 
+    const day = config.dayNight.day;
     this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color(0x0b0f14);
+    this.scene.background = new THREE.Color(day.bg);
+    this.renderer.toneMappingExposure = day.exposure;
 
     this.camera = new THREE.PerspectiveCamera(
       config.camera.fov,
@@ -57,13 +59,16 @@ export class SceneManager {
     // PBR materyaller için yumuşak stüdyo ortam ışığı
     const pmrem = new THREE.PMREMGenerator(this.renderer);
     this.scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+    this.scene.environmentIntensity = day.env;
     pmrem.dispose();
 
-    const hemi = new THREE.HemisphereLight(0xdfeaf5, 0x1c2430, 0.6);
-    this.scene.add(hemi);
-    const dir = new THREE.DirectionalLight(0xffffff, 1.1);
-    dir.position.set(1, 2, 1.2);
-    this.scene.add(dir);
+    this.hemiLight = new THREE.HemisphereLight(day.hemiSky, day.hemiGround, day.hemi);
+    this.scene.add(this.hemiLight);
+    this.dirLight = new THREE.DirectionalLight(day.dirColor, day.dir);
+    this.dirLight.position.set(1, 2, 1.2);
+    this.scene.add(this.dirLight);
+
+    this.onUpdate((dt) => this.#updateDayNight(dt));
 
     this.controls = new OrbitControls(this.camera, this.canvas);
     this.controls.enableDamping = true;
@@ -147,7 +152,8 @@ export class SceneManager {
     const radius = this.sceneScale * 1.2;
     const geo = new THREE.CircleGeometry(radius, 64);
     geo.rotateX(-Math.PI / 2);
-    const mat = new THREE.MeshStandardMaterial({ color: 0x141a22, roughness: 0.95, metalness: 0 });
+    // Marka paletine uygun sıcak nötr taban; gece modunda ışıkla birlikte doğal kararır
+    const mat = new THREE.MeshStandardMaterial({ color: 0x8f887c, roughness: 0.95, metalness: 0 });
     const ground = new THREE.Mesh(geo, mat);
     const center = this.bounds.getCenter(new THREE.Vector3());
     ground.position.set(center.x, this.floorY - 0.02, center.z);
@@ -170,6 +176,39 @@ export class SceneManager {
   setHitboxDebug(visible) {
     this.#hitboxMaterial.opacity = visible ? this.config.hitbox.debugOpacity : 0;
     for (const h of this.hitboxes) h.visible = visible;
+  }
+
+  // ---------- Gece / Gündüz ----------
+
+  #nightMix = 0;        // 0 = gündüz, 1 = gece
+  #nightTarget = 0;
+
+  /** Ortam ışıklarını gece/gündüz durumuna yumuşak geçişle taşır. */
+  setNight(night) {
+    this.#nightTarget = night ? 1 : 0;
+  }
+
+  get isNight() { return this.#nightTarget === 1; }
+
+  #updateDayNight(dt) {
+    if (this.#nightMix === this.#nightTarget) return;
+    const step = dt / this.config.dayNight.transitionSec;
+    this.#nightMix = this.#nightTarget > this.#nightMix
+      ? Math.min(this.#nightTarget, this.#nightMix + step)
+      : Math.max(this.#nightTarget, this.#nightMix - step);
+
+    const { day, night } = this.config.dayNight;
+    const mix = this.#nightMix;
+    const lerp = (a, b) => a + (b - a) * mix;
+
+    this.scene.background.lerpColors(new THREE.Color(day.bg), new THREE.Color(night.bg), mix);
+    this.hemiLight.color.lerpColors(new THREE.Color(day.hemiSky), new THREE.Color(night.hemiSky), mix);
+    this.hemiLight.groundColor.lerpColors(new THREE.Color(day.hemiGround), new THREE.Color(night.hemiGround), mix);
+    this.hemiLight.intensity = lerp(day.hemi, night.hemi);
+    this.dirLight.color.lerpColors(new THREE.Color(day.dirColor), new THREE.Color(night.dirColor), mix);
+    this.dirLight.intensity = lerp(day.dir, night.dir);
+    this.scene.environmentIntensity = lerp(day.env, night.env);
+    this.renderer.toneMappingExposure = lerp(day.exposure, night.exposure);
   }
 
   /** Ekran koordinatından verilen nesne listesine ışın gönderir. */

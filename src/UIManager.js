@@ -12,6 +12,8 @@ export class UIManager {
 
     this.#el = {
       panel: document.getElementById('store-panel'),
+      panelToggle: document.getElementById('panel-toggle'),
+      panelClose: document.getElementById('panel-close'),
       search: document.getElementById('store-search'),
       chips: document.getElementById('category-chips'),
       list: document.getElementById('store-list'),
@@ -58,6 +60,8 @@ export class UIManager {
     this.#buildChips();
     this.#renderList();
 
+    this.#el.panelToggle.addEventListener('click', () => this.openPanel());
+    this.#el.panelClose.addEventListener('click', () => this.closePanel());
     this.#el.search.addEventListener('input', () => this.#renderList());
     this.#el.cardClose.addEventListener('click', () => this.hideCard());
     this.#el.cardClear.addEventListener('click', () => {
@@ -76,6 +80,20 @@ export class UIManager {
   setAccessibility(value) {
     this.accessibility = value;
     this.#el.a11yToggle.setAttribute('aria-pressed', String(value));
+  }
+
+  // ---------- Panel aç/kapa ----------
+
+  openPanel() {
+    this.#el.panel.classList.remove('collapsed');
+    document.body.classList.add('panel-open');
+    this.#el.panelToggle.setAttribute('aria-expanded', 'true');
+  }
+
+  closePanel() {
+    this.#el.panel.classList.add('collapsed');
+    document.body.classList.remove('panel-open');
+    this.#el.panelToggle.setAttribute('aria-expanded', 'false');
   }
 
   // ---------- Liste ----------
@@ -171,6 +189,7 @@ export class UIManager {
     this.#el.cardA11yNote.classList.toggle('hidden', !routeInfo.accessible);
 
     this.#el.card.classList.remove('hidden');
+    this.closePanel(); // rota görünür kalsın diye seçimden sonra panel kapanır
   }
 
   hideCard() {
