@@ -3,6 +3,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { DRACOLoader, DRACO_GLTF_CONFIG } from 'three/addons/loaders/DRACOLoader.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { IS_MOBILE } from './config.js';
 
 /**
  * Sahne kurulumu, GLB yükleme, hitbox hazırlama ve render döngüsü.
@@ -31,12 +32,21 @@ export class SceneManager {
   }
 
   #updaters; #raycaster; #pointerNdc; #hitboxMaterial;
+  #basePixelRatio = 1; #resScale = 1; #frameAvgMs = 16.7; #adaptTimer = 0;
+  #fpsEl = null; #fpsFrames = 0; #fpsTime = 0;
 
   async init({ storeIds = [], onProgress = null } = {}) {
     const { config } = this;
 
-    this.renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    // Cihaz profili: mobilde antialias kapalı, piksel oranı sınırlı (doluluk maliyeti dpr² ile büyür)
+    this.perfProfile = IS_MOBILE ? config.perf.mobile : config.perf.desktop;
+    this.renderer = new THREE.WebGLRenderer({
+      antialias: this.perfProfile.antialias,
+      powerPreference: 'high-performance',
+      stencil: false,
+    });
+    this.#basePixelRatio = Math.min(window.devicePixelRatio, this.perfProfile.maxPixelRatio);
+    this.renderer.setPixelRatio(this.#basePixelRatio);
     this.renderer.setSize(window.innerWidth, window.innerHeight);
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1.05;
@@ -92,16 +102,31 @@ export class SceneManager {
     const loader = new GLTFLoader();
     loader.setDRACOLoader(dracoLoader);
 
-    const gltf = await new Promise((resolve, reject) => {
+    const loadUrl = (url) => new Promise((resolve, reject) => {
       loader.load(
-        this.config.paths.model,
+        url,
         resolve,
         (xhr) => { if (onProgress) onProgress(xhr.loaded, xhr.total); },
         reject,
       );
     });
 
+    // Mobilde önce hafifletilmiş model denenir; yoksa ana modele düşülür.
+    let gltf;
+    if (IS_MOBILE && this.config.paths.modelMobile) {
+      try {
+        gltf = await loadUrl(this.config.paths.modelMobile);
+        console.info('[SceneManager] Mobil model yüklendi:', this.config.paths.modelMobile);
+      } catch {
+        console.warn('[SceneManager] Mobil model bulunamadı, ana model kullanılıyor.');
+      }
+    }
+    if (!gltf) gltf = await loadUrl(this.config.paths.model);
+
     this.modelRoot = gltf.scene;
+    if (IS_MOBILE && this.perfProfile.maxTextureSize) {
+      this.#downscaleTextures(this.modelRoot, this.perfProfile.maxTextureSize);
+    }
     this.scene.add(this.modelRoot);
 
     const storeIdSet = new Set(storeIds.map((s) => s.toUpperCase()));
@@ -144,6 +169,38 @@ export class SceneManager {
     this.bounds.setFromObject(this.modelRoot);
     this.sceneScale = this.bounds.getSize(new THREE.Vector3()).length();
     this.floorY = this.bounds.min.y;
+  }
+
+  /**
+   * Mobil GPU belleği koruması: kenarı maxSize'ı aşan dokular canvas ile küçültülür.
+   * 2048² RGBA bir doku mip'lerle ~22 MB tutar; 1024'e inince ~5.5 MB'a düşer.
+   */
+  #downscaleTextures(root, maxSize) {
+    const seen = new Set();
+    let count = 0;
+    root.traverse((obj) => {
+      if (!obj.isMesh) return;
+      const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
+      for (const mat of mats) {
+        for (const key of ['map', 'normalMap', 'roughnessMap', 'metalnessMap', 'aoMap', 'emissiveMap']) {
+          const tex = mat?.[key];
+          if (!tex || seen.has(tex)) continue;
+          seen.add(tex);
+          const img = tex.image;
+          if (!img?.width || Math.max(img.width, img.height) <= maxSize) continue;
+
+          const scale = maxSize / Math.max(img.width, img.height);
+          const canvas = document.createElement('canvas');
+          canvas.width = Math.max(1, Math.round(img.width * scale));
+          canvas.height = Math.max(1, Math.round(img.height * scale));
+          canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+          tex.image = canvas;
+          tex.needsUpdate = true;
+          count += 1;
+        }
+      }
+    });
+    if (count) console.info(`[SceneManager] ${count} doku ${maxSize}px'e küçültüldü (mobil bellek koruması).`);
   }
 
   // Bloklar arası yürüyüş alanı GLB'de ayrı bir zemin mesh'i olmayabilir;
@@ -243,17 +300,70 @@ export class SceneManager {
   onUpdate(fn) { this.#updaters.add(fn); return () => this.#updaters.delete(fn); }
 
   start() {
+    if (this.config.debug.fpsCounter) {
+      this.#fpsEl = document.createElement('div');
+      this.#fpsEl.id = 'fps-counter';
+      this.#fpsEl.textContent = '— FPS';
+      document.body.appendChild(this.#fpsEl);
+    }
+
     let last = performance.now();
     let elapsed = 0;
     this.renderer.setAnimationLoop(() => {
       const now = performance.now();
-      const dt = Math.min((now - last) / 1000, 0.1);
+      const dtMs = now - last;
+      const dt = Math.min(dtMs / 1000, 0.1);
       last = now;
       elapsed += dt;
+      this.#adaptResolution(dtMs, dt);
+      this.#updateFpsCounter(dtMs);
       this.controls.update();
       for (const fn of this.#updaters) fn(dt, elapsed);
       this.renderer.render(this.scene, this.camera);
     });
+  }
+
+  #updateFpsCounter(dtMs) {
+    if (!this.#fpsEl) return;
+    this.#fpsFrames += 1;
+    this.#fpsTime += dtMs;
+    if (this.#fpsTime < 500) return; // ~saniyede 2 kez güncelle
+
+    const avgMs = this.#fpsTime / this.#fpsFrames;
+    const fps = Math.round(1000 / avgMs);
+    this.#fpsFrames = 0;
+    this.#fpsTime = 0;
+
+    const scaleNote = this.#resScale < 1 ? ` · ${(this.#resScale * 100).toFixed(0)}%` : '';
+    this.#fpsEl.textContent = `${fps} FPS · ${avgMs.toFixed(1)} ms${scaleNote}`;
+    this.#fpsEl.className = fps >= 50 ? 'good' : fps >= 30 ? 'mid' : 'bad';
+  }
+
+  /**
+   * Uyarlanabilir çözünürlük: ortalama kare süresi yavaşsa render ölçeğini
+   * kademeli düşürür, tekrar hızlanınca geri yükseltir. Zayıf tablet/telefonlarda
+   * takılmayı akıcılığa çevirir; güçlü cihazlarda hiç devreye girmez.
+   */
+  #adaptResolution(dtMs, dt) {
+    const cfg = this.config.perf.adaptive;
+    if (!cfg.enabled) return;
+
+    // Üstel hareketli ortalama; sekme geri planından dönüşteki dev kareleri yok say
+    if (dtMs < 500) this.#frameAvgMs += (dtMs - this.#frameAvgMs) * 0.05;
+
+    this.#adaptTimer += dt;
+    if (this.#adaptTimer < cfg.intervalSec) return;
+    this.#adaptTimer = 0;
+
+    let next = this.#resScale;
+    if (this.#frameAvgMs > cfg.slowMs) next = Math.max(cfg.minScale, this.#resScale * cfg.step);
+    else if (this.#frameAvgMs < cfg.fastMs) next = Math.min(1, this.#resScale / cfg.step);
+    if (next === this.#resScale) return;
+
+    this.#resScale = next;
+    this.renderer.setPixelRatio(this.#basePixelRatio * this.#resScale);
+    this.renderer.setSize(window.innerWidth, window.innerHeight);
+    console.info(`[SceneManager] Render ölçeği: ${(this.#basePixelRatio * this.#resScale).toFixed(2)} (ort. kare ${this.#frameAvgMs.toFixed(1)} ms)`);
   }
 
   #onResize() {

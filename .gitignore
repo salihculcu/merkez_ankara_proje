@@ -1,6 +1,9 @@
 # Canonical model lives under assets/models/
 /MERKEZ_ANKARA_KAT_1_DENEME.glb
 
+# Local browser profile (kiosk/debug) — do not commit
+_edgeprofile/
+
 # Editor / Python leftovers
 *.bak
 __pycache__/

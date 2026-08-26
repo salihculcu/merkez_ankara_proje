@@ -1,11 +1,17 @@
 import * as THREE from 'three';
+import { IS_MOBILE } from './config.js';
 
 /**
  * Sokak lambaları: editörde yerleştirilir, graph.json içinde `lamps` dizisinde saklanır.
  *
- * Her lamba = direk + başlık küresi + (gece) parlama sprite'ı + zemine ışık havuzu.
- * Gerçek PointLight sayısı performans için `maxRealLights` ile sınırlıdır;
- * sınırı aşan lambalar yalnızca görsel parlama alır.
+ * Performans mimarisi:
+ *  - Direk / başlık / şapka: 3 adet InstancedMesh (lamba sayısından bağımsız 3 draw call)
+ *  - Zemindeki ışık havuzları: 1 adet InstancedMesh
+ *  - Ampul parlamaları: 1 adet Points katmanı
+ *  - Gerçek PointLight sayısı `maxRealLights` ile sınırlıdır (mobilde perf.mobile değeri);
+ *    sınırı aşan lambalar aydınlatma hissini büyütülmüş sahte havuzdan alır.
+ *  - Gündüz modunda gece katmanları (havuz, parlama, ışıklar) tamamen kapatılır;
+ *    böylece ne overdraw ne de ışık shader maliyeti oluşur.
  */
 export class LampSystem {
   constructor(sceneManager, config) {
@@ -16,17 +22,24 @@ export class LampSystem {
     this.group.name = 'LAMP_LAYER';
     sceneManager.scene.add(this.group);
 
+    const profile = IS_MOBILE ? config.perf.mobile : config.perf.desktop;
+    this.#maxReal = profile.maxRealLights ?? config.lamps.maxRealLights;
+
     this.#buildSharedAssets();
     sceneManager.onUpdate((dt) => this.#update(dt));
   }
 
-  #entries = new Map();   // id -> { root, light, glow, pool, head }
+  #maxReal;
+  #lampIds = [];          // instanceId -> lamba id
+  #lampPos = [];          // instanceId -> [x, y, z]
+  #lights = [];           // ilk N lamba için gerçek ışıklar
+  #poleIM = null; #headIM = null; #capIM = null; #poolIM = null; #glowPoints = null;
   #fade = 0;              // 0 = sönük (gündüz), 1 = yanık (gece)
   #fadeTarget = 0;
   #highlightId = null;
 
   // Paylaşılan varlıklar
-  #poleGeo; #headGeo; #capGeo; #poleMat; #headMat; #capMat;
+  #poleGeo; #headGeo; #capGeo; #poolGeo; #poleMat; #headMat; #capMat; #poolMat; #glowMat;
   #glowTexture; #poolTexture;
 
   get height() {
@@ -35,12 +48,19 @@ export class LampSystem {
 
   #buildSharedAssets() {
     const h = this.height;
-    this.#poleGeo = new THREE.CylinderGeometry(h * 0.018, h * 0.028, h, 10);
+    const cfg = this.config.lamps;
+
+    this.#poleGeo = new THREE.CylinderGeometry(h * 0.018, h * 0.028, h, 8);
     this.#poleGeo.translate(0, h / 2, 0);
-    this.#headGeo = new THREE.SphereGeometry(h * 0.085, 16, 12);
+    this.#headGeo = new THREE.SphereGeometry(h * 0.085, 12, 10);
     this.#headGeo.translate(0, h * 0.96, 0);
-    this.#capGeo = new THREE.ConeGeometry(h * 0.13, h * 0.09, 12);
+    this.#capGeo = new THREE.ConeGeometry(h * 0.13, h * 0.09, 10);
     this.#capGeo.translate(0, h * 1.06, 0);
+    // Havuz, gerçek ışığın zemindeki ayak izine yakın boyutta tutulur ki
+    // ışık limiti dışında kalan lambalar da aydınlatıyormuş gibi görünsün.
+    this.#poolGeo = new THREE.CircleGeometry(h * (cfg.poolRadiusFactor ?? 2.6), 32);
+    this.#poolGeo.rotateX(-Math.PI / 2);
+    this.#poolGeo.translate(0, 0.03, 0);
 
     this.#poleMat = new THREE.MeshStandardMaterial({ color: 0x2b3440, roughness: 0.6, metalness: 0.5 });
     this.#capMat = new THREE.MeshStandardMaterial({ color: 0x1d242e, roughness: 0.5, metalness: 0.6 });
@@ -48,12 +68,30 @@ export class LampSystem {
     this.#headMat = new THREE.MeshStandardMaterial({
       color: 0x8a8f96,
       roughness: 0.35,
-      emissive: new THREE.Color(this.config.lamps.color),
+      emissive: new THREE.Color(cfg.color),
       emissiveIntensity: 0,
     });
 
     this.#glowTexture = this.#radialTexture(1.0, 0.0);
     this.#poolTexture = this.#radialTexture(0.7, 0.0);
+
+    this.#poolMat = new THREE.MeshBasicMaterial({
+      map: this.#poolTexture,
+      transparent: true,
+      opacity: 0,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+    });
+    this.#glowMat = new THREE.PointsMaterial({
+      map: this.#glowTexture,
+      color: cfg.color,
+      size: this.height * 0.85,
+      sizeAttenuation: true,
+      transparent: true,
+      opacity: 0,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+    });
   }
 
   #radialTexture(innerAlpha, outerAlpha) {
@@ -76,78 +114,128 @@ export class LampSystem {
 
   /** Lamba listesini (graph.lamps) sahneye kurar. */
   setLamps(lamps = []) {
-    for (const entry of this.#entries.values()) {
-      this.group.remove(entry.root);
-      entry.glow.material.dispose();
-      entry.pool.material.dispose();
-    }
-    this.#entries.clear();
+    this.#disposeBuilt();
+    this.#lampIds = lamps.map((l) => l.id);
+    this.#lampPos = lamps.map((l) => [...l.pos]);
+    const n = lamps.length;
+    if (n === 0) { this.#applyFade(); return; }
 
     const h = this.height;
     const cfg = this.config.lamps;
 
-    lamps.forEach((lamp, index) => {
-      const root = new THREE.Group();
-      root.position.set(lamp.pos[0], lamp.pos[1], lamp.pos[2]);
+    this.#poleIM = new THREE.InstancedMesh(this.#poleGeo, this.#poleMat, n);
+    this.#headIM = new THREE.InstancedMesh(this.#headGeo, this.#headMat, n);
+    this.#capIM = new THREE.InstancedMesh(this.#capGeo, this.#capMat, n);
+    this.#poolIM = new THREE.InstancedMesh(this.#poolGeo, this.#poolMat, n);
+    this.#poolIM.renderOrder = 5;
 
-      const pole = new THREE.Mesh(this.#poleGeo, this.#poleMat);
-      const head = new THREE.Mesh(this.#headGeo, this.#headMat);
-      const cap = new THREE.Mesh(this.#capGeo, this.#capMat);
-      // Editör seçimi için tanımlayıcı — direk ve başlık tıklanabilir
-      pole.userData.lampId = lamp.id;
-      head.userData.lampId = lamp.id;
-      cap.userData.lampId = lamp.id;
+    // Editör raycast'i için işaret; instanceId -> lamba id çevirisi lampIdFromHit ile yapılır
+    for (const im of [this.#poleIM, this.#headIM, this.#capIM]) {
+      im.userData.lampLayer = true;
+      im.frustumCulled = false;
+    }
+    this.#poolIM.frustumCulled = false;
 
-      const glow = new THREE.Sprite(new THREE.SpriteMaterial({
-        map: this.#glowTexture,
-        color: cfg.color,
-        transparent: true,
-        opacity: 0,
-        blending: THREE.AdditiveBlending,
-        depthWrite: false,
-      }));
-      glow.scale.setScalar(h * 0.85);
-      glow.position.y = h * 0.97;
+    const glowPositions = new Float32Array(n * 3);
+    const realDim = new THREE.Color(0.53, 0.53, 0.53); // gerçek ışıklı lambada havuz daha silik
+    const white = new THREE.Color(1, 1, 1);
 
-      // Havuz, gerçek ışığın zemindeki ayak izine yakın boyutta tutulur ki
-      // ışık limiti dışında kalan lambalar da aydınlatıyormuş gibi görünsün.
-      const poolGeo = new THREE.CircleGeometry(h * (cfg.poolRadiusFactor ?? 2.6), 32);
-      poolGeo.rotateX(-Math.PI / 2);
-      const pool = new THREE.Mesh(poolGeo, new THREE.MeshBasicMaterial({
-        map: this.#poolTexture,
-        transparent: true,
-        opacity: 0,
-        blending: THREE.AdditiveBlending,
-        depthWrite: false,
-      }));
-      pool.position.y = 0.03;
-      pool.renderOrder = 5;
+    lamps.forEach((lamp, i) => {
+      this.#writeMatrices(i, 1);
+      glowPositions[i * 3] = lamp.pos[0];
+      glowPositions[i * 3 + 1] = lamp.pos[1] + h * 0.97;
+      glowPositions[i * 3 + 2] = lamp.pos[2];
+      this.#poolIM.setColorAt(i, i < this.#maxReal ? realDim : white);
 
-      let light = null;
-      if (index < cfg.maxRealLights) {
-        light = new THREE.PointLight(cfg.color, 0, h * cfg.distanceFactor, 2);
-        light.position.y = h * 0.95;
-        root.add(light);
+      if (i < this.#maxReal) {
+        const light = new THREE.PointLight(cfg.color, 0, h * cfg.distanceFactor, 2);
+        light.position.set(lamp.pos[0], lamp.pos[1] + h * 0.95, lamp.pos[2]);
+        this.#lights.push(light);
+        this.group.add(light);
       }
-
-      root.add(pole, head, cap, glow, pool);
-      this.group.add(root);
-      this.#entries.set(lamp.id, { root, light, glow, pool, head });
     });
 
+    this.#poolIM.instanceColor.needsUpdate = true;
+
+    // Yeniden kurulumda mevcut seçim vurgusunu koru
+    const hlIdx = this.#highlightId ? this.#lampIds.indexOf(this.#highlightId) : -1;
+    if (hlIdx >= 0) this.#writeMatrices(hlIdx, 1.15);
+
+    const glowGeo = new THREE.BufferGeometry();
+    glowGeo.setAttribute('position', new THREE.BufferAttribute(glowPositions, 3));
+    this.#glowPoints = new THREE.Points(glowGeo, this.#glowMat);
+    this.#glowPoints.frustumCulled = false;
+    this.#glowPoints.renderOrder = 6;
+
+    this.group.add(this.#poleIM, this.#headIM, this.#capIM, this.#poolIM, this.#glowPoints);
     this.#applyFade(); // mevcut gece/gündüz durumunu yeni lambalara uygula
   }
 
+  #disposeBuilt() {
+    for (const light of this.#lights) this.group.remove(light);
+    this.#lights = [];
+    for (const obj of [this.#poleIM, this.#headIM, this.#capIM, this.#poolIM, this.#glowPoints]) {
+      if (!obj) continue;
+      this.group.remove(obj);
+      if (obj.isInstancedMesh) obj.dispose();
+      else obj.geometry.dispose(); // glow Points geometrisi lambaya özel
+    }
+    this.#poleIM = this.#headIM = this.#capIM = this.#poolIM = this.#glowPoints = null;
+  }
+
+  /** i. lambanın direk/başlık/şapka/havuz matrislerini yazar. */
+  #writeMatrices(i, scale) {
+    const [x, y, z] = this.#lampPos[i];
+    const m = new THREE.Matrix4().compose(
+      new THREE.Vector3(x, y, z),
+      new THREE.Quaternion(),
+      new THREE.Vector3(scale, scale, scale),
+    );
+    this.#poleIM.setMatrixAt(i, m);
+    this.#headIM.setMatrixAt(i, m);
+    this.#capIM.setMatrixAt(i, m);
+    const poolM = new THREE.Matrix4().makeTranslation(x, y, z);
+    this.#poolIM.setMatrixAt(i, poolM);
+    this.#markMatricesDirty();
+  }
+
+  #markMatricesDirty() {
+    for (const im of [this.#poleIM, this.#headIM, this.#capIM, this.#poolIM]) {
+      im.instanceMatrix.needsUpdate = true;
+    }
+  }
+
+  /** Editör raycast sonucundan lamba kimliğini çözer. */
+  lampIdFromHit(hit) {
+    if (!hit?.object?.userData?.lampLayer || hit.instanceId == null) return null;
+    return this.#lampIds[hit.instanceId] ?? null;
+  }
+
   updateLampPosition(id, pos) {
-    this.#entries.get(id)?.root.position.set(pos.x, pos.y, pos.z);
+    const i = this.#lampIds.indexOf(id);
+    if (i < 0) return;
+    this.#lampPos[i] = [pos.x, pos.y, pos.z];
+    this.#writeMatrices(i, this.#highlightId === id ? 1.15 : 1);
+
+    const attr = this.#glowPoints.geometry.getAttribute('position');
+    attr.setXYZ(i, pos.x, pos.y + this.height * 0.97, pos.z);
+    attr.needsUpdate = true;
+
+    if (i < this.#lights.length) {
+      this.#lights[i].position.set(pos.x, pos.y + this.height * 0.95, pos.z);
+    }
   }
 
   /** Editörde seçili lambayı belirginleştirir. */
   setHighlight(id) {
+    if (this.#highlightId === id) return;
+    const prev = this.#highlightId;
     this.#highlightId = id;
-    for (const [lampId, entry] of this.#entries) {
-      entry.root.scale.setScalar(lampId === id ? 1.15 : 1);
-    }
+    if (!this.#poleIM) return;
+    const prevIdx = prev ? this.#lampIds.indexOf(prev) : -1;
+    const idx = id ? this.#lampIds.indexOf(id) : -1;
+    if (prevIdx >= 0) this.#writeMatrices(prevIdx, 1);
+    if (idx >= 0) this.#writeMatrices(idx, 1.15);
   }
 
   setNight(night) {
@@ -155,13 +243,7 @@ export class LampSystem {
   }
 
   get pickMeshes() {
-    const meshes = [];
-    for (const entry of this.#entries.values()) {
-      for (const child of entry.root.children) {
-        if (child.isMesh && child.userData.lampId) meshes.push(child);
-      }
-    }
-    return meshes;
+    return [this.#poleIM, this.#headIM, this.#capIM].filter(Boolean);
   }
 
   #update(dt) {
@@ -176,11 +258,16 @@ export class LampSystem {
   #applyFade() {
     const f = this.#fade;
     this.#headMat.emissiveIntensity = f * 2.2;
-    for (const entry of this.#entries.values()) {
-      if (entry.light) entry.light.intensity = f * this.config.lamps.intensity;
-      entry.glow.material.opacity = f * 0.85;
-      // Gerçek ışığı olmayan lambalar zemin aydınlığını tamamen havuzdan alır
-      entry.pool.material.opacity = f * (entry.light ? 0.4 : 0.75);
+    this.#glowMat.opacity = f * 0.85;
+    this.#poolMat.opacity = f * 0.75;
+
+    // Gündüz: gece katmanları hiç çizilmesin, ışıklar shader'a girmesin
+    const nightVisible = f > 0.01;
+    if (this.#poolIM) this.#poolIM.visible = nightVisible;
+    if (this.#glowPoints) this.#glowPoints.visible = nightVisible;
+    for (const light of this.#lights) {
+      light.visible = nightVisible;
+      light.intensity = f * this.config.lamps.intensity;
     }
   }
 }

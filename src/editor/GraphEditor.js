@@ -293,9 +293,12 @@ export class GraphEditor {
     return hits[0]?.object ?? null;
   }
 
+  // Lambalar InstancedMesh olduğundan kimlik instanceId üzerinden çözülür;
+  // çağıran taraflar için eski mesh arayüzü (userData.lampId) taklit edilir.
   #pickLamp(e) {
     const hits = this.sm.raycastFromScreen(e.clientX, e.clientY, this.lampSystem.pickMeshes);
-    return hits[0]?.object ?? null;
+    const lampId = hits.length ? this.lampSystem.lampIdFromHit(hits[0]) : null;
+    return lampId ? { userData: { lampId } } : null;
   }
 
   #pickEdge(e) {
