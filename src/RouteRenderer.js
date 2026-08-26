@@ -43,18 +43,18 @@ export class RouteRenderer {
     const length = curve.getLength();
     const tubularSegments = THREE.MathUtils.clamp(Math.round(length / (radius * 0.5)), 32, 800);
 
-    // Taban tüp
+    // Taban tüp: görünen kısım normal, bina arkasında kalan kısım soluk hayalet geçişiyle
     const baseGeo = new THREE.TubeGeometry(curve, tubularSegments, radius, 10, false);
     const baseMat = new THREE.MeshBasicMaterial({
       color: cfg.baseColor,
       transparent: true,
       opacity: cfg.baseOpacity,
       depthWrite: false,
-      depthTest: !cfg.alwaysOnTop,
+      depthTest: true,
     });
     const baseTube = new THREE.Mesh(baseGeo, baseMat);
     baseTube.renderOrder = 50;
-    this.group.add(baseTube);
+    this.group.add(baseTube, this.#ghostOf(baseTube, cfg.occludedOpacity));
     this.#disposables.push(baseGeo, baseMat);
 
     // Akış okları
@@ -66,16 +66,35 @@ export class RouteRenderer {
       map: arrowMap,
       transparent: true,
       depthWrite: false,
-      depthTest: !cfg.alwaysOnTop,
+      depthTest: true,
       blending: THREE.AdditiveBlending,
     });
     const arrowTube = new THREE.Mesh(arrowGeo, arrowMat);
     arrowTube.renderOrder = 51;
-    this.group.add(arrowTube);
+    this.group.add(arrowTube, this.#ghostOf(arrowTube, cfg.occludedOpacity));
     this.#disposables.push(arrowGeo, arrowMat, arrowMat.map);
     this.#arrowMaterial = arrowMat;
 
     this.#buildDestinationMarker(lifted[lifted.length - 1], radius);
+  }
+
+  /**
+   * Kesilme (occlusion) hayaleti: aynı geometriyi ters derinlik testiyle
+   * (GreaterDepth) yeniden çizer — yalnızca kamera ile arasına GLB giren
+   * bölgede görünür ve orayı soluk gösterir. Doku referansı paylaşıldığı
+   * için ok akış animasyonu hayalette de aynı anda oynar.
+   */
+  #ghostOf(mesh, opacity) {
+    const mat = mesh.material.clone();
+    mat.transparent = true;
+    mat.opacity = opacity;
+    mat.depthTest = true;
+    mat.depthWrite = false;
+    mat.depthFunc = THREE.GreaterDepth;
+    const ghost = new THREE.Mesh(mesh.geometry, mat);
+    ghost.renderOrder = mesh.renderOrder - 2;
+    this.#disposables.push(mat);
+    return ghost;
   }
 
   #buildDestinationMarker(pos, radius) {

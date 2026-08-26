@@ -6,6 +6,7 @@ import { PathfindingEngine } from './PathfindingEngine.js';
 import { RouteRenderer } from './RouteRenderer.js';
 import { CameraDirector } from './CameraDirector.js';
 import { LampSystem } from './LampSystem.js';
+import { StoreMarkers } from './StoreMarkers.js';
 import { UIManager } from './UIManager.js';
 
 const isEditorMode = new URLSearchParams(location.search).has('editor');
@@ -50,6 +51,7 @@ async function boot() {
   camera.setHomeFromBounds(sceneManager.bounds);
 
   const lampSystem = new LampSystem(sceneManager, CONFIG);
+  const storeMarkers = new StoreMarkers(sceneManager, CONFIG);
   wireDayNightToggle(sceneManager, lampSystem);
 
   sceneManager.start();
@@ -59,18 +61,22 @@ async function boot() {
 
   if (isEditorMode) {
     const { GraphEditor } = await import('./editor/GraphEditor.js');
-    const editor = new GraphEditor(sceneManager, engine, routeRenderer, lampSystem, CONFIG);
+    const editor = new GraphEditor(sceneManager, engine, routeRenderer, lampSystem, storeMarkers, CONFIG);
     const hitboxIds = sceneManager.hitboxes.map((h) => h.userData.storeId);
     await editor.init([...new Set([...storeIds, ...hitboxIds])]);
     ui.hideLoading();
     return;
   }
 
-  // Kiosk modunda lambalar graph.json'dan gelir
+  // Kiosk modunda lambalar ve mağaza pinleri graph.json'dan gelir
   lampSystem.setLamps(engine.graph.lamps ?? []);
+  storeMarkers.setMarkers(engine.graph.storeMarkers ?? {});
 
   // ---------- Kiosk modu ----------
-  new InteractionManager(sceneManager, bus);
+  wireTopViewToggle(sceneManager);
+  wireEditorLink();
+  const interaction = new InteractionManager(sceneManager, bus);
+  interaction.setMarkerSource(storeMarkers);
   const hitboxStoreIds = sceneManager.hitboxes.map((h) => h.userData.storeId);
   ui.init(storesMeta, hitboxStoreIds);
 
@@ -117,10 +123,29 @@ async function boot() {
     ui.hideCard();
     ui.closePanel();
     ui.setAccessibility(false);
+    sceneManager.setTopView(false);
+    document.getElementById('view2d-toggle').setAttribute('aria-pressed', 'false');
     camera.goHome();
   });
 
   ui.hideLoading();
+}
+
+// Kiosk sayfasındaki 2B kuş bakışı düğmesi (editörde ayrı düğme var).
+function wireTopViewToggle(sceneManager) {
+  const btn = document.getElementById('view2d-toggle');
+  btn.addEventListener('click', () => {
+    const on = !sceneManager.topViewActive;
+    sceneManager.setTopView(on);
+    btn.setAttribute('aria-pressed', String(on));
+  });
+}
+
+// "Edit Mod" düğmesi editör sayfasına yönlendirir.
+function wireEditorLink() {
+  document.getElementById('editor-link').addEventListener('click', () => {
+    location.href = './?editor';
+  });
 }
 
 // Gece/Gündüz düğmesi hem kiosk hem editör modunda çalışır.

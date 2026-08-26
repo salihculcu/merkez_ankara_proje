@@ -14,14 +14,15 @@ import * as THREE from 'three';
  * Taslak her değişiklikte localStorage'a yazılır; "JSON İndir" ile graph.json üretilir.
  */
 export class GraphEditor {
-  constructor(sceneManager, engine, routeRenderer, lampSystem, config) {
+  constructor(sceneManager, engine, routeRenderer, lampSystem, storeMarkers, config) {
     this.sm = sceneManager;
     this.engine = engine;
     this.routeRenderer = routeRenderer;
     this.lampSystem = lampSystem;
+    this.storeMarkers = storeMarkers;
     this.config = config;
 
-    this.graph = { version: 1, meta: {}, nodes: [], edges: [], lamps: [] };
+    this.graph = { version: 1, meta: {}, nodes: [], edges: [], lamps: [], storeMarkers: {} };
     this.mode = 'select';
     this.selection = null;      // { kind:'node', id } | { kind:'edge', index }
     this.chainNodeId = null;    // otomatik bağlama / kenar zinciri kaynağı
@@ -96,6 +97,7 @@ export class GraphEditor {
       nodes: g.nodes ?? [],
       edges: g.edges ?? [],
       lamps: g.lamps ?? [],
+      storeMarkers: g.storeMarkers ?? {},
     };
   }
 
@@ -111,6 +113,7 @@ export class GraphEditor {
     this.engine.setGraph(this.graph);
     this.#rebuildVisuals();
     this.lampSystem.setLamps(this.graph.lamps);
+    this.storeMarkers.setMarkers(this.graph.storeMarkers);
     this.#refreshStats();
     if (autosave) this.#scheduleAutosave();
   }
@@ -564,6 +567,7 @@ export class GraphEditor {
           <button class="ed-mode-btn" data-mode="test">Rota Test</button>
         </div>
         <button class="ed-btn" id="ed-2d">2B Kuş Bakışı</button>
+        <button class="ed-btn" id="ed-exit">Ana Sayfaya Dön</button>
         <div id="ed-status"></div>
       </div>
 
@@ -597,6 +601,20 @@ export class GraphEditor {
           <label class="inline"><input type="checkbox" id="ed-one-way"> Tek yön</label>
           <input type="number" id="ed-edge-cost" placeholder="maliyet (boş=oto)" step="0.1" min="0">
         </div>
+      </div>
+
+      <div class="ed-section">
+        <label>Mağaza Konum İmleci</label>
+        <select id="ed-marker-store">${storeOptions}</select>
+        <div class="ed-row">
+          <button class="ed-btn" id="ed-marker-upload">Logo Yükle</button>
+          <button class="ed-btn danger" id="ed-marker-clear">Logoyu Sil</button>
+        </div>
+        <div class="ed-row">
+          <label class="inline"><input type="checkbox" id="ed-marker-auto" checked> Otomatik renk (logodan)</label>
+          <input type="color" id="ed-marker-color" value="${this.config.storeMarkers.defaultColor}" title="Elle pin rengi">
+        </div>
+        <input type="file" id="ed-marker-file" accept="image/*" style="display:none">
       </div>
 
       <div class="ed-section">
@@ -648,7 +666,13 @@ export class GraphEditor {
       warnings: panel.querySelector('#ed-warnings'),
       a11yTest: panel.querySelector('#ed-a11y-test'),
       file: panel.querySelector('#ed-file'),
+      markerStore: panel.querySelector('#ed-marker-store'),
+      markerAuto: panel.querySelector('#ed-marker-auto'),
+      markerColor: panel.querySelector('#ed-marker-color'),
+      markerFile: panel.querySelector('#ed-marker-file'),
     };
+
+    this.#bindMarkerControls(panel);
 
     panel.querySelectorAll('.ed-mode-btn').forEach((btn) => {
       btn.addEventListener('click', () => this.#setMode(btn.dataset.mode, btn));
@@ -678,6 +702,9 @@ export class GraphEditor {
 
     this.#el.btn2d = panel.querySelector('#ed-2d');
     this.#el.btn2d.addEventListener('click', () => this.#toggle2D());
+
+    // Taslak zaten her değişiklikte localStorage'a yazıldığı için onay sormadan çıkılır
+    panel.querySelector('#ed-exit').addEventListener('click', () => { location.href = './'; });
 
     panel.querySelector('#ed-delete-selected').addEventListener('click', () => this.#deleteSelection());
     panel.querySelector('#ed-clear-route').addEventListener('click', () => {
@@ -715,69 +742,110 @@ export class GraphEditor {
     });
   }
 
+  // ---------------- Mağaza konum imleci düzenleme ----------------
+
+  #bindMarkerControls(panel) {
+    const el = this.#el;
+
+    const currentEntry = () => {
+      const id = el.markerStore.value;
+      const m = this.graph.storeMarkers;
+      if (!m[id]) m[id] = { logo: null, color: null };
+      return [id, m[id]];
+    };
+
+    // Ne logo ne elle renk kaldıysa kaydı temizle (varsayılan pin kullanılır)
+    const prune = (id) => {
+      const e = this.graph.storeMarkers[id];
+      if (e && !e.logo && !e.color) delete this.graph.storeMarkers[id];
+    };
+
+    el.markerStore.addEventListener('change', () => this.#syncMarkerControls());
+
+    panel.querySelector('#ed-marker-upload').addEventListener('click', () => el.markerFile.click());
+    el.markerFile.addEventListener('change', async () => {
+      const file = el.markerFile.files[0];
+      el.markerFile.value = '';
+      if (!file) return;
+      const [id, entry] = currentEntry();
+      try {
+        entry.logo = await this.#fileToLogoDataUrl(file);
+        this.#commit();
+        this.#setStatus(`${id} logosu yüklendi${entry.color ? '' : ' — pin rengi logodan alınacak'}.`);
+      } catch (err) {
+        this.#setStatus(`Görsel okunamadı: ${err.message ?? err}`);
+      }
+    });
+
+    panel.querySelector('#ed-marker-clear').addEventListener('click', () => {
+      const [id, entry] = currentEntry();
+      if (!entry.logo) { this.#setStatus(`${id} için yüklü logo yok.`); prune(id); return; }
+      entry.logo = null;
+      prune(id);
+      this.#commit();
+      this.#setStatus(`${id} logosu silindi — pinde baş harf gösterilir.`);
+    });
+
+    el.markerAuto.addEventListener('change', () => {
+      const [id, entry] = currentEntry();
+      entry.color = el.markerAuto.checked ? null : el.markerColor.value;
+      prune(id);
+      this.#commit();
+      this.#setStatus(el.markerAuto.checked
+        ? `${id}: pin rengi otomatik (logodaki baskın renk).`
+        : `${id}: pin rengi elle atandı (${el.markerColor.value}).`);
+    });
+
+    el.markerColor.addEventListener('input', () => {
+      const [, entry] = currentEntry();
+      el.markerAuto.checked = false;
+      entry.color = el.markerColor.value;
+      this.#commit();
+    });
+
+    this.#syncMarkerControls();
+  }
+
+  /** Seçili mağazanın kayıtlı imleç ayarlarını form kontrollerine yansıtır. */
+  #syncMarkerControls() {
+    const entry = this.graph.storeMarkers[this.#el.markerStore.value];
+    this.#el.markerAuto.checked = !entry?.color;
+    if (entry?.color) this.#el.markerColor.value = entry.color;
+  }
+
+  /** Yüklenen görseli kare kırpıp 128px'e küçültür; data-URL graph.json'da saklanır. */
+  async #fileToLogoDataUrl(file) {
+    const url = URL.createObjectURL(file);
+    try {
+      const img = await new Promise((resolve, reject) => {
+        const i = new Image();
+        i.onload = () => resolve(i);
+        i.onerror = () => reject(new Error('geçersiz görsel'));
+        i.src = url;
+      });
+      const S = 128;
+      const canvas = document.createElement('canvas');
+      canvas.width = canvas.height = S;
+      const ctx = canvas.getContext('2d');
+      const scale = Math.max(S / img.width, S / img.height);
+      const w = img.width * scale, h = img.height * scale;
+      ctx.drawImage(img, (S - w) / 2, (S - h) / 2, w, h);
+      return canvas.toDataURL('image/png');
+    } finally {
+      URL.revokeObjectURL(url);
+    }
+  }
+
   // ---------------- 2B kuş bakışı görünümü ----------------
 
-  #view2D = false;
-  #savedView = null;
-
-  /**
-   * Kamerayı tam tepeden bakışa kilitler (CAD/dekorasyon programlarındaki 2B mod gibi):
-   * dönme kapanır, sol sürükleme kaydırma olur, dar FOV ile perspektif düzleşir.
-   * Tekrar basınca önceki 3B görünüm aynen geri gelir.
-   */
+  // Asıl mantık SceneManager.setTopView'da (kiosk moduyla ortak kullanılır)
   #toggle2D() {
-    this.#view2D = !this.#view2D;
-    this.#el.btn2d.classList.toggle('active', this.#view2D);
-    const cam = this.sm.camera;
-    const c = this.sm.controls;
-
-    if (this.#view2D) {
-      this.#savedView = {
-        pos: cam.position.clone(),
-        target: c.target.clone(),
-        fov: cam.fov,
-        maxPolar: c.maxPolarAngle,
-        maxDist: c.maxDistance,
-        mouseLeft: c.mouseButtons.LEFT,
-        touchOne: c.touches.ONE,
-      };
-
-      const center = this.sm.bounds.getCenter(new THREE.Vector3());
-      const size = this.sm.bounds.getSize(new THREE.Vector3());
-      const maxDim = Math.max(size.x, size.z);
-
-      // Dar FOV = ortografiğe yakın, düz plan görünümü; mesafe plana göre kadrajlanır
-      cam.fov = 20;
-      const dist = (maxDim / 2) / Math.tan(THREE.MathUtils.degToRad(cam.fov / 2)) * 1.12;
-      c.maxDistance = Math.max(c.maxDistance, dist * 2.5);
-
-      cam.position.set(center.x, this.sm.floorY + dist, center.z + dist * 0.001);
-      c.target.copy(center);
-      c.minPolarAngle = 0;
-      c.maxPolarAngle = 0.002;   // tepeden bakış kilidi
-      c.enableRotate = false;
-      c.mouseButtons.LEFT = THREE.MOUSE.PAN;  // sol sürükleme: haritayı kaydır
-      c.touches.ONE = THREE.TOUCH.PAN;
-
-      cam.updateProjectionMatrix();
-      c.update();
-      this.#setStatus('2B kuş bakışı açık — sürükle: kaydır · tekerlek: yakınlaş/uzaklaş.');
-    } else {
-      const s = this.#savedView;
-      cam.fov = s.fov;
-      cam.position.copy(s.pos);
-      c.target.copy(s.target);
-      c.minPolarAngle = 0;
-      c.maxPolarAngle = s.maxPolar;
-      c.maxDistance = s.maxDist;
-      c.enableRotate = true;
-      c.mouseButtons.LEFT = s.mouseLeft;
-      c.touches.ONE = s.touchOne;
-
-      cam.updateProjectionMatrix();
-      c.update();
-      this.#setStatus('3B görünüme dönüldü.');
-    }
+    const on = !this.sm.topViewActive;
+    this.sm.setTopView(on);
+    this.#el.btn2d.classList.toggle('active', on);
+    this.#setStatus(on
+      ? '2B kuş bakışı açık — sürükle: kaydır · tekerlek: yakınlaş/uzaklaş.'
+      : '3B görünüme dönüldü.');
   }
 
   #setMode(mode, btn) {
@@ -850,6 +918,7 @@ export class GraphEditor {
         ...l,
         pos: l.pos.map((v) => Math.round(v * 1000) / 1000),
       })),
+      storeMarkers: this.graph.storeMarkers,
     };
     return JSON.stringify(out, null, 2);
   }

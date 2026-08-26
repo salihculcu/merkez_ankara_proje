@@ -469,6 +469,8 @@ body.editor-mode #store-panel,
 body.editor-mode #panel-toggle,
 body.editor-mode #info-card,
 body.editor-mode #legend,
+body.editor-mode #view2d-toggle,
+body.editor-mode #editor-link,
 body.editor-mode #a11y-toggle { display: none !important; }
 
 #editor-panel {
@@ -538,6 +540,16 @@ body.editor-mode #a11y-toggle { display: none !important; }
   outline: none;
 }
 #editor-panel select:focus, #editor-panel input:focus { border-color: var(--accent); }
+
+#editor-panel input[type="color"] {
+  height: 40px;
+  min-width: 56px;
+  padding: 3px;
+  border-radius: 10px;
+  border: 1px solid var(--panel-border);
+  background: #edeae3;
+  cursor: pointer;
+}
 
 .ed-row { display: flex; gap: 8px; align-items: center; }
 .ed-row > * { flex: 1; }

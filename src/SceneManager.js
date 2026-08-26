@@ -297,6 +297,66 @@ export class SceneManager {
     return this.#raycaster.ray.intersectPlane(plane, out) ? out : null;
   }
 
+  // ---------- 2B kuş bakışı görünümü ----------
+
+  topViewActive = false;
+  #savedView = null;
+
+  /**
+   * Kamerayı tam tepeden bakışa kilitler (CAD/harita programlarındaki 2B mod gibi):
+   * dönme kapanır, sol sürükleme kaydırma olur, dar FOV ile perspektif düzleşir.
+   * Kapatınca önceki 3B görünüm aynen geri gelir.
+   */
+  setTopView(on) {
+    if (on === this.topViewActive) return;
+    this.topViewActive = on;
+    const cam = this.camera;
+    const c = this.controls;
+
+    if (on) {
+      this.#savedView = {
+        pos: cam.position.clone(),
+        target: c.target.clone(),
+        fov: cam.fov,
+        maxPolar: c.maxPolarAngle,
+        maxDist: c.maxDistance,
+        mouseLeft: c.mouseButtons.LEFT,
+        touchOne: c.touches.ONE,
+      };
+
+      const center = this.bounds.getCenter(new THREE.Vector3());
+      const size = this.bounds.getSize(new THREE.Vector3());
+      const maxDim = Math.max(size.x, size.z);
+
+      // Dar FOV = ortografiğe yakın, düz plan görünümü; mesafe plana göre kadrajlanır
+      cam.fov = 20;
+      const dist = (maxDim / 2) / Math.tan(THREE.MathUtils.degToRad(cam.fov / 2)) * 1.12;
+      c.maxDistance = Math.max(c.maxDistance, dist * 2.5);
+
+      cam.position.set(center.x, this.floorY + dist, center.z + dist * 0.001);
+      c.target.copy(center);
+      c.minPolarAngle = 0;
+      c.maxPolarAngle = 0.002;   // tepeden bakış kilidi
+      c.enableRotate = false;
+      c.mouseButtons.LEFT = THREE.MOUSE.PAN;  // sol sürükleme: haritayı kaydır
+      c.touches.ONE = THREE.TOUCH.PAN;
+    } else {
+      const s = this.#savedView;
+      cam.fov = s.fov;
+      cam.position.copy(s.pos);
+      c.target.copy(s.target);
+      c.minPolarAngle = 0;
+      c.maxPolarAngle = s.maxPolar;
+      c.maxDistance = s.maxDist;
+      c.enableRotate = true;
+      c.mouseButtons.LEFT = s.mouseLeft;
+      c.touches.ONE = s.touchOne;
+    }
+
+    cam.updateProjectionMatrix();
+    c.update();
+  }
+
   onUpdate(fn) { this.#updaters.add(fn); return () => this.#updaters.delete(fn); }
 
   start() {

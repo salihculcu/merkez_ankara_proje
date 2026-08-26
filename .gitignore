@@ -1,8 +1,11 @@
 # Canonical model lives under assets/models/
 /MERKEZ_ANKARA_KAT_1_DENEME.glb
 
-# Local browser profile (kiosk/debug) — do not commit
+# Local browser profile used by the kiosk smoke server
 _edgeprofile/
+
+# Local smoke-test screenshots
+_smoke_*.png
 
 # Editor / Python leftovers
 *.bak

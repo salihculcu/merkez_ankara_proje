@@ -62,12 +62,25 @@ export const CONFIG = {
     baseOpacity: 0.92,
     flowSpeed: 1.4,           // ok akış hızı (uv/sn)
     arrowSpacingRadii: 7,     // oklar arası mesafe (yarıçap katı)
-    alwaysOnTop: true,        // rota binaların arkasında kalsa da görünsün
+    alwaysOnTop: true,        // hedef pini/halkası binaların arkasında da tam görünsün
+    occludedOpacity: 0.28,    // tüpün bina arkasında kalan kısmının soluk opaklığı
   },
 
   markers: {
     startColor: 0x22d3ee,     // "Buradasınız"
     destColor: 0xff5470,      // hedef pini
+  },
+
+  // Mağaza üstü konum imleçleri (logo + zıplama animasyonlu, hep kameraya dönük)
+  storeMarkers: {
+    defaultColor: '#e08035',  // logo yüklenmemişse / renk çıkarılamazsa kullanılacak ton
+    sizeFactor: 0.024,        // pin genişliği = sahne ölçeği * katsayı (önceki 0.016'nın 1.5×'i)
+    minSize: 0.35,
+    maxSize: 3.5,
+    yOffset: 0.25,            // hitbox tavanından yükseklik (pin boyu katı)
+    bounceAmp: 0.18,          // zıplama genliği (pin boyu katı)
+    bounceSpeed: 2.4,         // zıplama hızı (rad/sn)
+    occludedOpacity: 0.3,     // pinin bina arkasında kalan kısmının soluk opaklığı
   },
 
   // Gece/Gündüz ortam ayarları (geçiş yumuşak yapılır)
