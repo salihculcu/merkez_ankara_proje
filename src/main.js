@@ -11,6 +11,7 @@ import { UIManager } from './UIManager.js';
 
 const isEditorMode = new URLSearchParams(location.search).has('editor');
 
+installKioskGuards();
 setupErrorOverlay();
 boot().catch((err) => {
   console.error('[main] Başlatma hatası:', err);
@@ -182,6 +183,20 @@ function errorMessage(code) {
     STORE_NO_DOOR: STRINGS.storeNoDoor,
     DOOR_DISCONNECTED: STRINGS.doorDisconnected,
   }[code] ?? STRINGS.routeNotFound;
+}
+
+// ---------- Kiosk jest kilidi (tablet uzun basış / seçim / menü) ----------
+
+function installKioskGuards() {
+  const block = (e) => e.preventDefault();
+  document.addEventListener('contextmenu', block);
+  document.addEventListener('dragstart', block);
+  document.addEventListener('gesturestart', block); // eski iOS sayfa pinch-zoom
+  document.addEventListener('selectstart', (e) => {
+    const el = e.target;
+    if (el && el.closest?.('input, textarea, select')) return;
+    e.preventDefault();
+  });
 }
 
 // ---------- Hata görünürlüğü (kiosk sahada ayıklama için) ----------
