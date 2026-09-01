@@ -24,8 +24,12 @@ export class UIManager {
       cardDistance: document.getElementById('card-distance'),
       cardEta: document.getElementById('card-eta'),
       cardA11yNote: document.getElementById('card-a11y-note'),
+      cardSteps: document.getElementById('card-steps'),
       cardClose: document.getElementById('card-close'),
       cardClear: document.getElementById('card-clear-route'),
+      promo: document.getElementById('promo-card'),
+      promoTrack: document.getElementById('promo-track'),
+      promoDots: document.getElementById('promo-dots'),
       a11yToggle: document.getElementById('a11y-toggle'),
       toasts: document.getElementById('toast-container'),
       clock: document.getElementById('clock'),
@@ -75,6 +79,7 @@ export class UIManager {
 
     this.#startClock();
     this.#startIdleWatch();
+    this.#initPromo();
   }
 
   setAccessibility(value) {
@@ -188,8 +193,134 @@ export class UIManager {
     this.#el.cardEta.textContent = `~${minutes} ${STRINGS.minutesShort}`;
     this.#el.cardA11yNote.classList.toggle('hidden', !routeInfo.accessible);
 
+    this.#renderSteps(routeInfo.points ?? [], store.name);
+
     this.#el.card.classList.remove('hidden');
     this.closePanel(); // rota görünür kalsın diye seçimden sonra panel kapanır
+  }
+
+  // ---------- Adım adım yönlendirme ----------
+
+  /**
+   * Rota noktalarından basit adım listesi üretir: yön değişimi ~30°'yi
+   * aşınca yeni adım başlar, son bacak "mağazasına ulaştınız" olur.
+   */
+  #buildSteps(points, storeName) {
+    const mpu = this.config.units.metersPerUnit;
+    const raw = points.map((p) => ({ x: p.x * mpu, z: p.z * mpu }));
+
+    // Çok yakın noktaları birleştir (waypoint zinciri gürültüsü)
+    const path = raw.length ? [raw[0]] : [];
+    for (const p of raw.slice(1)) {
+      const last = path[path.length - 1];
+      if (Math.hypot(p.x - last.x, p.z - last.z) > 0.8) path.push(p);
+    }
+    if (path.length < 2) return [];
+
+    // Bacaklar: yön ~30°'den fazla kırılınca yeni bacak
+    const legs = [];
+    let legDist = 0;
+    let legTurn = 'straight';
+    let prevDir = null;
+    for (let i = 1; i < path.length; i++) {
+      const dx = path[i].x - path[i - 1].x;
+      const dz = path[i].z - path[i - 1].z;
+      const len = Math.hypot(dx, dz);
+      const dir = { x: dx / len, z: dz / len };
+      if (prevDir) {
+        const cross = prevDir.z * dir.x - prevDir.x * dir.z;
+        const dot = prevDir.x * dir.x + prevDir.z * dir.z;
+        const angleDeg = (Math.atan2(cross, dot) * 180) / Math.PI;
+        if (Math.abs(angleDeg) > 30) {
+          legs.push({ dist: legDist, turn: legTurn });
+          legDist = 0;
+          legTurn = angleDeg < 0 ? 'right' : 'left';
+        }
+      }
+      legDist += len;
+      prevDir = dir;
+    }
+    legs.push({ dist: legDist, turn: legTurn });
+
+    return legs.map((leg, i) => {
+      const dist = `${Math.max(1, Math.round(leg.dist))} ${STRINGS.metersShort}`;
+      if (i === legs.length - 1) return { icon: 'arrive', dist, text: `${storeName} ${STRINGS.stepArriveSuffix}` };
+      if (i === 0 || leg.turn === 'straight') return { icon: 'straight', dist, text: STRINGS.stepStraight };
+      return { icon: leg.turn, dist, text: leg.turn === 'right' ? STRINGS.stepRight : STRINGS.stepLeft };
+    });
+  }
+
+  #renderSteps(points, storeName) {
+    const steps = this.#buildSteps(points, storeName);
+    const el = this.#el.cardSteps;
+    el.innerHTML = '';
+    el.classList.toggle('hidden', steps.length === 0);
+
+    const icons = {
+      straight: '<path d="M12 19V5"/><path d="m5 12 7-7 7 7"/>',
+      right: '<path d="M6 20v-8a4 4 0 0 1 4-4h7"/><path d="m13 4 4 4-4 4"/>',
+      left: '<path d="M18 20v-8a4 4 0 0 0-4-4H7"/><path d="m11 4-4 4 4 4"/>',
+      arrive: '<path d="M12 21s-6-5.1-6-9.8A6 6 0 0 1 18 11.2C18 15.9 12 21 12 21z"/><circle cx="12" cy="11" r="2.4"/>',
+    };
+    for (const step of steps) {
+      const div = document.createElement('div');
+      div.className = `step step-${step.icon}`;
+      div.innerHTML = `
+        <span class="step-icon"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${icons[step.icon]}</svg></span>
+        <span class="step-body">
+          <span class="step-dist">${this.#escape(step.dist)}</span>
+          <span class="step-text">${this.#escape(step.text)}</span>
+        </span>`;
+      el.appendChild(div);
+    }
+  }
+
+  // ---------- Kampanya kartı (oto-kayan) ----------
+
+  #promoIdx = 0; #promoTimer = null;
+
+  #initPromo() {
+    const track = this.#el.promoTrack;
+    if (!track) return;
+    const count = track.children.length;
+
+    for (let i = 0; i < count; i++) {
+      const dot = document.createElement('button');
+      dot.className = 'promo-dot';
+      dot.type = 'button';
+      dot.setAttribute('aria-label', `Kampanya ${i + 1}`);
+      dot.addEventListener('click', () => { this.#promoGo(i); this.#promoRestartAuto(); });
+      this.#el.promoDots.appendChild(dot);
+    }
+    this.#promoGo(0);
+    this.#promoRestartAuto();
+
+    // Parmakla kaydırma
+    let startX = null;
+    this.#el.promo.addEventListener('pointerdown', (e) => { startX = e.clientX; });
+    this.#el.promo.addEventListener('pointerup', (e) => {
+      if (startX == null) return;
+      const dx = e.clientX - startX;
+      startX = null;
+      if (Math.abs(dx) < 40) return;
+      const count = this.#el.promoTrack.children.length;
+      this.#promoGo((this.#promoIdx + (dx < 0 ? 1 : -1) + count) % count);
+      this.#promoRestartAuto();
+    });
+  }
+
+  #promoGo(i) {
+    this.#promoIdx = i;
+    this.#el.promoTrack.style.transform = `translateX(-${i * 100}%)`;
+    [...this.#el.promoDots.children].forEach((d, k) => d.classList.toggle('active', k === i));
+  }
+
+  #promoRestartAuto() {
+    clearInterval(this.#promoTimer);
+    this.#promoTimer = setInterval(() => {
+      const count = this.#el.promoTrack.children.length;
+      this.#promoGo((this.#promoIdx + 1) % count);
+    }, 6000);
   }
 
   hideCard() {

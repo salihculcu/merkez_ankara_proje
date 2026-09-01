@@ -224,7 +224,8 @@ export class SceneManager {
     const center = this.bounds.getCenter(new THREE.Vector3());
     this.controls.target.copy(center);
     this.controls.minDistance = this.sceneScale * 0.08;
-    this.controls.maxDistance = this.sceneScale * 2.0;
+    // Asıl tavan CameraDirector.setHomeFromBounds'ta home mesafesine çekilir
+    this.controls.maxDistance = this.sceneScale * 1.0;
     this.camera.near = Math.max(0.01, this.sceneScale * 0.001);
     this.camera.far = this.sceneScale * 12;
     this.camera.updateProjectionMatrix();

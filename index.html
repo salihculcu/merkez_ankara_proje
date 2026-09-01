@@ -95,26 +95,50 @@
   <!-- Bilgi kartı -->
   <section id="info-card" class="hidden" aria-live="polite">
     <div class="card-accent"></div>
+    <button id="card-close" class="icon-btn card-close" type="button" aria-label="Kapat">✕</button>
     <div class="card-body">
-      <div class="card-title-row">
-        <div>
-          <h2 id="card-name">—</h2>
-          <div class="card-meta">
-            <span id="card-category" class="badge"></span>
-            <span id="card-floor" class="badge badge-dim"></span>
-          </div>
+      <div class="card-main">
+        <h2 id="card-name">—</h2>
+        <div class="card-meta">
+          <span id="card-category" class="badge"></span>
+          <span id="card-floor" class="badge badge-dim"></span>
         </div>
-        <button id="card-close" class="icon-btn" type="button" aria-label="Kapat">✕</button>
+        <div id="card-route-info" class="route-info">
+          <span id="card-distance">—</span>
+          <span class="dot">·</span>
+          <span id="card-eta">—</span>
+          <span id="card-a11y-note" class="a11y-note hidden">Engelsiz rota</span>
+        </div>
+        <button id="card-clear-route" class="pill-btn danger" type="button">Rotayı Temizle</button>
       </div>
-      <div id="card-route-info" class="route-info">
-        <span id="card-distance">—</span>
-        <span class="dot">·</span>
-        <span id="card-eta">—</span>
-        <span id="card-a11y-note" class="a11y-note hidden">Engelsiz rota</span>
-      </div>
-      <button id="card-clear-route" class="pill-btn danger" type="button">Rotayı Temizle</button>
+      <div id="card-steps" class="card-steps"></div>
     </div>
   </section>
+
+  <!-- Sağ alt: kampanya kartı (oto-kayan, kaydırılabilir) -->
+  <aside id="promo-card" aria-label="Kampanyalar">
+    <div id="promo-track">
+      <article class="promo-slide promo-a">
+        <span class="promo-kicker">YAZ KOLEKSİYONUNDA</span>
+        <strong class="promo-title">ÖZEL FIRSATLAR</strong>
+        <span class="promo-sub">Seçili mağazalarda geçerlidir.</span>
+        <button class="promo-btn" type="button">Keşfet</button>
+      </article>
+      <article class="promo-slide promo-b">
+        <span class="promo-kicker">YENİ SEZON</span>
+        <strong class="promo-title">%30'A VARAN İNDİRİM</strong>
+        <span class="promo-sub">Boyner'de seçili ürünlerde.</span>
+        <button class="promo-btn" type="button">İncele</button>
+      </article>
+      <article class="promo-slide promo-c">
+        <span class="promo-kicker">LEZZET MOLASI</span>
+        <strong class="promo-title">KAHVE KEYFİ</strong>
+        <span class="promo-sub">Yeme & içme katında sizi bekliyor.</span>
+        <button class="promo-btn" type="button">Gör</button>
+      </article>
+    </div>
+    <div id="promo-dots" role="tablist" aria-label="Kampanya sayfaları"></div>
+  </aside>
 
   <!-- Sol alt: konum göstergesi -->
   <div id="legend">

@@ -293,32 +293,85 @@
     font-size: 14.5px;
   }
   
-  /* ---------- Bilgi kartı ---------- */
-  #info-card {
-    position: fixed;
-    left: 50%;
-    bottom: 28px;
-    transform: translateX(-50%);
-    width: min(480px, calc(100vw - 40px));
-    background: var(--panel);
-    border: 1px solid var(--panel-border);
-    border-radius: var(--radius-lg);
-    box-shadow: var(--shadow);
-    backdrop-filter: blur(16px);
-    overflow: hidden;
-    z-index: 18;
-    transition: transform 0.25s ease, opacity 0.25s ease;
-  }
-  #info-card.hidden {
-    opacity: 0;
-    transform: translateX(-50%) translateY(24px);
-    pointer-events: none;
-  }
-  .card-accent { height: 4px; background: linear-gradient(90deg, var(--accent), var(--surface)); }
-  .card-body { padding: 18px 20px 20px; }
-  .card-title-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
-  #card-name { font-size: 24px; font-weight: 700; }
-  .card-meta { display: flex; gap: 8px; margin-top: 8px; }
+/* ---------- Bilgi kartı ---------- */
+#info-card {
+  position: fixed;
+  left: 50%;
+  bottom: 28px;
+  transform: translateX(-50%);
+  width: min(560px, calc(100vw - 40px));
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(16px);
+  overflow: hidden;
+  z-index: 18;
+  transition: transform 0.25s ease, opacity 0.25s ease;
+}
+#info-card.hidden {
+  opacity: 0;
+  transform: translateX(-50%) translateY(24px);
+  pointer-events: none;
+}
+.card-accent { height: 4px; background: linear-gradient(90deg, var(--accent), var(--surface)); }
+.card-close { position: absolute; top: 14px; right: 14px; z-index: 1; }
+.card-body {
+  display: flex;
+  gap: 18px;
+  padding: 18px 20px 20px;
+}
+.card-main { flex: 1; min-width: 0; }
+#card-name { font-size: 24px; font-weight: 700; padding-right: 40px; }
+.card-meta { display: flex; gap: 8px; margin-top: 8px; }
+
+/* Adım adım yönlendirme (sağ sütun) */
+.card-steps {
+  flex: 1;
+  min-width: 0;
+  max-height: 200px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  padding: 6px 4px 2px 16px;
+  border-left: 1px solid var(--panel-border);
+}
+.card-steps.hidden { display: none; }
+.card-steps::-webkit-scrollbar { width: 5px; }
+.card-steps::-webkit-scrollbar-thumb { background: rgba(41,41,39,0.18); border-radius: 3px; }
+.step {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 7px 0;
+}
+/* Adımlar arası dikey kesikli bağlantı çizgisi */
+.step:not(:last-child)::before {
+  content: '';
+  position: absolute;
+  left: 15px;
+  top: 36px;
+  bottom: -8px;
+  border-left: 2px dotted var(--panel-border);
+}
+.step-icon {
+  width: 32px; height: 32px;
+  flex: none;
+  display: grid; place-items: center;
+  border-radius: 50%;
+  background: rgba(41, 41, 39, 0.05);
+  border: 1px solid var(--panel-border);
+  color: var(--text-dim);
+}
+.step-arrive .step-icon {
+  background: rgba(180, 68, 60, 0.1);
+  border-color: rgba(180, 68, 60, 0.35);
+  color: var(--danger);
+}
+.step-body { display: flex; flex-direction: column; min-width: 0; }
+.step-dist { font-size: 15px; font-weight: 700; }
+.step-text { font-size: 12.5px; color: var(--text-dim); margin-top: 1px; }
   .badge {
     font-size: 12.5px;
     font-weight: 700;
@@ -382,7 +435,77 @@
     50% { box-shadow: 0 0 0 8px rgba(34, 211, 238, 0.08); }
   }
   
-  /* ---------- FPS sayacı ---------- */
+  /* ---------- Kampanya kartı (sağ alt) ---------- */
+#promo-card {
+  position: fixed;
+  right: 20px;
+  bottom: 28px;
+  width: 320px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--panel-border);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  z-index: 12;
+  user-select: none;
+  touch-action: pan-y;
+}
+#promo-track {
+  display: flex;
+  transition: transform 0.45s ease;
+}
+.promo-slide {
+  flex: 0 0 100%;
+  min-height: 150px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: flex-start;
+  gap: 3px;
+  padding: 16px 18px 40px;
+  color: #f7f4ef;
+}
+/* Görsel yerine marka paletinden zemin — içerik sonra bağlanacak */
+.promo-a { background: linear-gradient(135deg, #756352, #a68f7a 60%, #d2c2b0); }
+.promo-b { background: linear-gradient(135deg, #3f4b3e, #65705a 65%, #a68f7a); }
+.promo-c { background: linear-gradient(135deg, #292927, #756352 70%, #d2c2b0); }
+.promo-kicker { font-size: 11px; font-weight: 700; letter-spacing: 1.6px; opacity: 0.85; }
+.promo-title { font-size: 19px; font-weight: 800; letter-spacing: 0.4px; }
+.promo-sub { font-size: 12px; opacity: 0.85; }
+.promo-btn {
+  margin-top: 8px;
+  padding: 7px 16px;
+  border-radius: 999px;
+  border: 1px solid rgba(247, 244, 239, 0.55);
+  background: rgba(247, 244, 239, 0.14);
+  color: #f7f4ef;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  backdrop-filter: blur(4px);
+}
+.promo-btn:active { background: rgba(247, 244, 239, 0.3); }
+#promo-dots {
+  position: absolute;
+  left: 0; right: 0; bottom: 12px;
+  display: flex;
+  justify-content: center;
+  gap: 7px;
+}
+.promo-dot {
+  width: 8px; height: 8px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: rgba(247, 244, 239, 0.45);
+  cursor: pointer;
+  transition: background 0.2s, transform 0.2s;
+}
+.promo-dot.active { background: #f7f4ef; transform: scale(1.25); }
+/* Editörde ve dar ekranlarda kampanya kartı gizli */
+body.editor-mode #promo-card { display: none; }
+@media (max-width: 900px) { #promo-card { display: none; } }
+
+/* ---------- FPS sayacı ---------- */
   #fps-counter {
     position: fixed;
     left: 20px;

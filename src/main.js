@@ -95,7 +95,7 @@ async function boot() {
     activeStoreId = storeId;
     routeRenderer.draw(result.points);
     camera.frameRoute(result.points);
-    ui.showStoreCard(storeId, { distance: result.distance, accessible: ui.accessibility });
+    ui.showStoreCard(storeId, { distance: result.distance, accessible: ui.accessibility, points: result.points });
   });
 
   bus.on('accessibilityChanged', ({ accessible }) => {
@@ -109,7 +109,7 @@ async function boot() {
     }
     routeRenderer.draw(result.points);
     camera.frameRoute(result.points);
-    ui.showStoreCard(activeStoreId, { distance: result.distance, accessible });
+    ui.showStoreCard(activeStoreId, { distance: result.distance, accessible, points: result.points });
   });
 
   bus.on('routeCleared', () => {

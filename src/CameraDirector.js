@@ -22,8 +22,10 @@ export class CameraDirector {
   setHomeFromBounds(bounds) {
     const cam = this.config.camera;
     const center = bounds.getCenter(new THREE.Vector3());
-    const sphere = bounds.getBoundingSphere(new THREE.Sphere());
-    const distance = this.#fitDistance(sphere.radius) * cam.fitPadding;
+    // Küre yarıçapı peyzaj/otopark uçlarını abartır; yatay ayak izi kiosk kadrajına daha yakın.
+    const size = bounds.getSize(new THREE.Vector3());
+    const radius = Math.max(size.x, size.z) * 0.5;
+    const distance = this.#fitDistance(radius) * (cam.homePadding ?? cam.fitPadding);
 
     const position = this.#orbitPosition(
       center, distance,
@@ -34,6 +36,8 @@ export class CameraDirector {
     this.#home = { position, target: center.clone() };
     this.sceneManager.camera.position.copy(position);
     this.sceneManager.controls.target.copy(center);
+    // Açılış görünümü aynı zamanda en uzak bakış: daha fazla zoom-out yapılamaz
+    this.sceneManager.controls.maxDistance = distance * (cam.maxZoomOutFactor ?? 1.06);
     this.sceneManager.controls.update();
   }
 

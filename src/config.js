@@ -113,7 +113,9 @@ export const CONFIG = {
     homePolarDeg: 50,         // kuşbakışına yakın açı (0 = tepeden)
     homeAzimuthDeg: 35,
     framePolarDeg: 45,
-    fitPadding: 1.28,         // kadrajlama payı
+    fitPadding: 1.28,         // rota kadrajlama payı
+    homePadding: 0.72,        // başlangıç görünümü payı (küçük = daha yakın; tüm kroki bu mesafeden dolar)
+    maxZoomOutFactor: 1.0,    // home mesafesinin ötesine zoom-out yok
     frameMs: 1400,
     homeMs: 1600,
   },
@@ -161,4 +163,8 @@ export const STRINGS = {
   metersShort: 'm',
   allCategories: 'Tümü',
   noResults: 'Sonuç bulunamadı',
+  stepStraight: 'İleri doğru devam edin',
+  stepRight: 'Sağa dönün',
+  stepLeft: 'Sola dönün',
+  stepArriveSuffix: 'mağazasına ulaştınız',
 };
