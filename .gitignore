@@ -6,6 +6,11 @@ _edgeprofile/
 
 # Local smoke-test screenshots
 _smoke_*.png
+_apk_test_*.png
+
+# Node / Capacitor generated output
+node_modules/
+www/
 
 # Editor / Python leftovers
 *.bak

@@ -1,0 +1,30 @@
+{
+  "name": "merkez_ankara",
+  "version": "1.0.0",
+  "description": "WebGL/Three.js tabanlı, tek GLB dosyasıyla çalışan etkileşimli AVM yönlendirme uygulaması. Mağaza hitbox'ına dokunulduğunda Dijkstra ile en kısa yol hesaplanır ve zemin üzerinde animasyonlu bir 3B rota tüpü çizilir. Tamamen offline çalışır (three.js yerel kopyadır).",
+  "main": "index.js",
+  "directories": {
+    "lib": "lib"
+  },
+  "scripts": {
+    "build:www": "node build-www.mjs",
+    "android:sync": "npm run build:www && cap sync android",
+    "android:open": "cap open android"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/FatihAkpiyall/MERKEZ_ANKARA.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/FatihAkpiyall/MERKEZ_ANKARA/issues"
+  },
+  "homepage": "https://github.com/FatihAkpiyall/MERKEZ_ANKARA#readme",
+  "dependencies": {
+    "@capacitor/android": "^8.5.1",
+    "@capacitor/cli": "^8.5.1",
+    "@capacitor/core": "^8.5.1"
+  }
+}

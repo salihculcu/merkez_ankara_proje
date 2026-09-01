@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Merkez Ankara</string>
+    <string name="title_activity_main">Merkez Ankara</string>
+    <string name="package_name">com.merkezankara.kiosk</string>
+    <string name="custom_url_scheme">com.merkezankara.kiosk</string>
+</resources>
