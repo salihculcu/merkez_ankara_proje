@@ -102,14 +102,22 @@ export class SceneManager {
     const loader = new GLTFLoader();
     loader.setDRACOLoader(dracoLoader);
 
-    const loadUrl = (url) => new Promise((resolve, reject) => {
-      loader.load(
-        url,
-        resolve,
-        (xhr) => { if (onProgress) onProgress(xhr.loaded, xhr.total); },
-        reject,
-      );
-    });
+    const loadUrl = async (url) => {
+      const res = await fetch(url, { cache: 'no-store' });
+      if (!res.ok) throw new Error(`Model yüklenemedi (${res.status}): ${url}`);
+      const buf = await res.arrayBuffer();
+      // Vercel LFS'siz deploy'da .glb yerine "version https://git-lfs..." işaretçisi gelir
+      const head = new TextDecoder().decode(buf.slice(0, 48));
+      if (head.startsWith('version https://git-lfs')) {
+        throw new Error(
+          '3B model Git LFS işaretçisi olarak geldi (gerçek GLB yok). Vercel’de GIT_LFS_ENABLED=true yapın veya .glb dosyalarını LFS’siz commit’leyin.',
+        );
+      }
+      if (onProgress) onProgress(buf.byteLength, buf.byteLength);
+      return new Promise((resolve, reject) => {
+        loader.parse(buf, url.slice(0, url.lastIndexOf('/') + 1), resolve, reject);
+      });
+    };
 
     // Mobilde önce hafifletilmiş model denenir; yoksa ana modele düşülür.
     let gltf;
