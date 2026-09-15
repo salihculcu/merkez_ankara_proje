@@ -17,7 +17,10 @@ export class InteractionManager {
     canvas.addEventListener('pointerup', (e) => this.#onUp(e));
   }
 
-  #tapMaxDistPx; #tapMaxMs; #down = null;
+  #tapMaxDistPx; #tapMaxMs; #down = null; #markers = null;
+
+  /** Mağaza pinlerine dokunmayı da seçim saymak için kaynak bağlar. */
+  setMarkerSource(storeMarkers) { this.#markers = storeMarkers; }
 
   #onDown(e) {
     if (!e.isPrimary) return;
@@ -31,6 +34,16 @@ export class InteractionManager {
 
     const moved = Math.hypot(e.clientX - x, e.clientY - y);
     if (moved > this.#tapMaxDistPx || performance.now() - t > this.#tapMaxMs) return;
+
+    // Önce pinler (üstte dururlar), sonra hitbox'lar
+    if (this.#markers) {
+      const pinHits = this.sceneManager.raycastFromScreen(e.clientX, e.clientY, this.#markers.pickSprites);
+      const pinStoreId = pinHits[0]?.object.userData.storeId;
+      if (pinStoreId) {
+        this.bus.emit('storeSelected', { storeId: pinStoreId, origin: 'pin' });
+        return;
+      }
+    }
 
     const hits = this.sceneManager.raycastFromScreen(e.clientX, e.clientY, this.sceneManager.hitboxes);
     if (hits.length === 0) return;

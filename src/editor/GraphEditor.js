@@ -14,13 +14,15 @@ import * as THREE from 'three';
  * Taslak her değişiklikte localStorage'a yazılır; "JSON İndir" ile graph.json üretilir.
  */
 export class GraphEditor {
-  constructor(sceneManager, engine, routeRenderer, config) {
+  constructor(sceneManager, engine, routeRenderer, lampSystem, storeMarkers, config) {
     this.sm = sceneManager;
     this.engine = engine;
     this.routeRenderer = routeRenderer;
+    this.lampSystem = lampSystem;
+    this.storeMarkers = storeMarkers;
     this.config = config;
 
-    this.graph = { version: 1, meta: {}, nodes: [], edges: [] };
+    this.graph = { version: 1, meta: {}, nodes: [], edges: [], lamps: [], storeMarkers: {} };
     this.mode = 'select';
     this.selection = null;      // { kind:'node', id } | { kind:'edge', index }
     this.chainNodeId = null;    // otomatik bağlama / kenar zinciri kaynağı
@@ -94,6 +96,8 @@ export class GraphEditor {
       meta: g.meta ?? { building: 'MERKEZ_ANKARA', units: 'scene-units' },
       nodes: g.nodes ?? [],
       edges: g.edges ?? [],
+      lamps: g.lamps ?? [],
+      storeMarkers: g.storeMarkers ?? {},
     };
   }
 
@@ -108,6 +112,8 @@ export class GraphEditor {
   #commit(autosave = true) {
     this.engine.setGraph(this.graph);
     this.#rebuildVisuals();
+    this.lampSystem.setLamps(this.graph.lamps);
+    this.storeMarkers.setMarkers(this.graph.storeMarkers);
     this.#refreshStats();
     if (autosave) this.#scheduleAutosave();
   }
@@ -195,6 +201,7 @@ export class GraphEditor {
       obj.material.color.set(selected ? 0xffffff
         : (this.config.editor.edgeColors[this.graph.edges[obj.userData.edgeIndex]?.type ?? 'walk'] ?? 0x94a3b8));
     }
+    this.lampSystem.setHighlight(this.selection?.kind === 'lamp' ? this.selection.id : null);
   }
 
   // ---------------- Pointer etkileşimi ----------------
@@ -208,14 +215,22 @@ export class GraphEditor {
 
   #onPointerDown(e) {
     if (!e.isPrimary) return;
-    this.#drag = { x: e.clientX, y: e.clientY, t: performance.now(), moved: false, nodeId: null };
+    this.#drag = { x: e.clientX, y: e.clientY, t: performance.now(), moved: false, kind: null, id: null };
 
-    // Seç modunda bir noktanın üzerinde basılıyorsa sürükleme adayı olur
+    // Seç modunda bir nokta/lamba üzerinde basılıyorsa sürükleme adayı olur
     if (this.mode === 'select') {
       const node = this.#pickNode(e);
       if (node) {
-        this.#drag.nodeId = node.userData.nodeId;
+        this.#drag.kind = 'node';
+        this.#drag.id = node.userData.nodeId;
         this.sm.controls.enabled = false; // kamera değil nokta hareket etsin
+      } else {
+        const lamp = this.#pickLamp(e);
+        if (lamp) {
+          this.#drag.kind = 'lamp';
+          this.#drag.id = lamp.userData.lampId;
+          this.sm.controls.enabled = false;
+        }
       }
     }
   }
@@ -223,15 +238,23 @@ export class GraphEditor {
   #onPointerMove(e) {
     if (!this.#drag || !e.isPrimary) return;
     if (Math.hypot(e.clientX - this.#drag.x, e.clientY - this.#drag.y) > 8) this.#drag.moved = true;
+    if (!this.#drag.id || !this.#drag.moved) return;
 
-    if (this.#drag.nodeId && this.#drag.moved) {
-      const node = this.graph.nodes.find((n) => n.id === this.#drag.nodeId);
+    if (this.#drag.kind === 'node') {
+      const node = this.graph.nodes.find((n) => n.id === this.#drag.id);
       const point = this.sm.raycastToPlane(e.clientX, e.clientY, node.pos[1]);
       if (point) {
         node.pos = [point.x, node.pos[1], point.z];
         const mesh = this.#nodeMeshes.get(node.id);
         mesh.position.set(point.x, node.pos[1] + this.nodeRadius, point.z);
         this.#rebuildEdgesOnly();
+      }
+    } else if (this.#drag.kind === 'lamp') {
+      const lamp = this.graph.lamps.find((l) => l.id === this.#drag.id);
+      const point = this.sm.raycastToPlane(e.clientX, e.clientY, lamp.pos[1]);
+      if (point) {
+        lamp.pos = [point.x, lamp.pos[1], point.z];
+        this.lampSystem.updateLampPosition(lamp.id, { x: point.x, y: lamp.pos[1], z: point.z });
       }
     }
   }
@@ -251,8 +274,9 @@ export class GraphEditor {
     this.#drag = null;
     this.sm.controls.enabled = true;
 
-    if (drag.nodeId && drag.moved) { // sürükleme bitti
-      this.#selectNode(drag.nodeId);
+    if (drag.id && drag.moved) { // sürükleme bitti
+      if (drag.kind === 'node') this.#selectNode(drag.id);
+      else this.#selectLamp(drag.id);
       this.#commit();
       return;
     }
@@ -270,6 +294,14 @@ export class GraphEditor {
   #pickNode(e) {
     const hits = this.sm.raycastFromScreen(e.clientX, e.clientY, [...this.#nodeMeshes.values()]);
     return hits[0]?.object ?? null;
+  }
+
+  // Lambalar InstancedMesh olduğundan kimlik instanceId üzerinden çözülür;
+  // çağıran taraflar için eski mesh arayüzü (userData.lampId) taklit edilir.
+  #pickLamp(e) {
+    const hits = this.sm.raycastFromScreen(e.clientX, e.clientY, this.lampSystem.pickMeshes);
+    const lampId = hits.length ? this.lampSystem.lampIdFromHit(hits[0]) : null;
+    return lampId ? { userData: { lampId } } : null;
   }
 
   #pickEdge(e) {
@@ -290,6 +322,8 @@ export class GraphEditor {
   #tapSelect(e) {
     const node = this.#pickNode(e);
     if (node) { this.#selectNode(node.userData.nodeId); return; }
+    const lamp = this.#pickLamp(e);
+    if (lamp) { this.#selectLamp(lamp.userData.lampId); return; }
     const edge = this.#pickEdge(e);
     if (edge) { this.#selectEdge(edge.userData.edgeIndex); return; }
     this.#clearSelection();
@@ -301,6 +335,19 @@ export class GraphEditor {
 
     const type = this.#el.nodeType.value;
     let id;
+
+    // Lambalar graf düğümü değildir: rota ağına girmez, ayrı listede tutulur
+    if (type === 'lamp') {
+      id = this.#nextLampId();
+      this.graph.lamps.push({ id, pos: [point.x, point.y, point.z] });
+      this.#commit();
+      this.#selectLamp(id);
+      const real = this.config.lamps.maxRealLights;
+      this.#setStatus(this.graph.lamps.length > real
+        ? `${id} eklendi (${this.graph.lamps.length}. lamba — ilk ${real} tanesi gerçek ışık verir).`
+        : `${id} eklendi. Gece modunda yanar.`);
+      return;
+    }
 
     if (type === 'kiosk') {
       const existing = this.graph.nodes.find((n) => n.type === 'kiosk');
@@ -381,6 +428,8 @@ export class GraphEditor {
   #tapDelete(e) {
     const node = this.#pickNode(e);
     if (node) { this.#deleteNode(node.userData.nodeId); return; }
+    const lamp = this.#pickLamp(e);
+    if (lamp) { this.#deleteLamp(lamp.userData.lampId); return; }
     const edge = this.#pickEdge(e);
     if (edge) {
       this.graph.edges.splice(edge.userData.edgeIndex, 1);
@@ -388,6 +437,13 @@ export class GraphEditor {
       this.#commit();
       this.#setStatus('Kenar silindi.');
     }
+  }
+
+  #deleteLamp(id) {
+    this.graph.lamps = this.graph.lamps.filter((l) => l.id !== id);
+    this.#clearSelection();
+    this.#commit();
+    this.#setStatus(`${id} silindi.`);
   }
 
   #deleteNode(id) {
@@ -435,6 +491,12 @@ export class GraphEditor {
     this.#refreshSelectionInfo();
   }
 
+  #selectLamp(id) {
+    this.selection = { kind: 'lamp', id };
+    this.#applySelectionHighlight();
+    this.#refreshSelectionInfo();
+  }
+
   #selectEdge(index) {
     this.selection = { kind: 'edge', index };
     const edge = this.graph.edges[index];
@@ -455,6 +517,18 @@ export class GraphEditor {
   #refreshSelectionInfo() {
     const el = this.#el.selectionInfo;
     if (!this.selection) { el.textContent = 'Seçim yok.'; return; }
+
+    if (this.selection.kind === 'lamp') {
+      const lamp = this.graph.lamps.find((l) => l.id === this.selection.id);
+      if (!lamp) { el.textContent = 'Seçim yok.'; return; }
+      const order = this.graph.lamps.indexOf(lamp) + 1;
+      const real = order <= this.config.lamps.maxRealLights;
+      el.textContent =
+        `id: ${lamp.id}\ntip: sokak lambası` +
+        `\npos: [${lamp.pos.map((v) => v.toFixed(2)).join(', ')}]` +
+        `\nışık: ${real ? 'gerçek ışık' : 'sadece görsel parlama'}`;
+      return;
+    }
 
     if (this.selection.kind === 'node') {
       const n = this.graph.nodes.find((x) => x.id === this.selection.id);
@@ -492,6 +566,8 @@ export class GraphEditor {
           <button class="ed-mode-btn" data-mode="delete">Sil</button>
           <button class="ed-mode-btn" data-mode="test">Rota Test</button>
         </div>
+        <button class="ed-btn" id="ed-2d">2B Kuş Bakışı</button>
+        <button class="ed-btn" id="ed-exit">Ana Sayfaya Dön</button>
         <div id="ed-status"></div>
       </div>
 
@@ -504,6 +580,7 @@ export class GraphEditor {
           <option value="elevator">Asansör</option>
           <option value="escalator">Yürüyen merdiven</option>
           <option value="stairs">Merdiven</option>
+          <option value="lamp">Sokak lambası (gece ışığı)</option>
         </select>
         <div class="ed-row" id="ed-store-row" style="display:none">
           <label class="inline" for="ed-store-select">Mağaza:</label>
@@ -524,6 +601,20 @@ export class GraphEditor {
           <label class="inline"><input type="checkbox" id="ed-one-way"> Tek yön</label>
           <input type="number" id="ed-edge-cost" placeholder="maliyet (boş=oto)" step="0.1" min="0">
         </div>
+      </div>
+
+      <div class="ed-section">
+        <label>Mağaza Konum İmleci</label>
+        <select id="ed-marker-store">${storeOptions}</select>
+        <div class="ed-row">
+          <button class="ed-btn" id="ed-marker-upload">Logo Yükle</button>
+          <button class="ed-btn danger" id="ed-marker-clear">Logoyu Sil</button>
+        </div>
+        <div class="ed-row">
+          <label class="inline"><input type="checkbox" id="ed-marker-auto" checked> Otomatik renk (logodan)</label>
+          <input type="color" id="ed-marker-color" value="${this.config.storeMarkers.defaultColor}" title="Elle pin rengi">
+        </div>
+        <input type="file" id="ed-marker-file" accept="image/*" style="display:none">
       </div>
 
       <div class="ed-section">
@@ -551,12 +642,12 @@ export class GraphEditor {
           <button class="ed-btn" id="ed-copy">Kopyala</button>
           <button class="ed-btn" id="ed-import">Dosyadan Yükle</button>
         </div>
-        <button class="ed-btn danger" id="ed-reset">Taslağı Sıfırla</button>
+        <button class="ed-btn danger" id="ed-reset">Sıfırla (tümünü sil, dosyayı boşalt)</button>
         <input type="file" id="ed-file" accept=".json,application/json" style="display:none">
       </div>
 
       <div style="font-size:11.5px;color:var(--text-dim)">
-        Kısayollar: Delete sil · Esc zinciri bırak · H hitbox · G ızgara
+        Kısayollar: Delete sil · Esc zinciri bırak · H hitbox · G ızgara · 2 kuş bakışı
       </div>`;
     document.body.appendChild(panel);
 
@@ -575,7 +666,13 @@ export class GraphEditor {
       warnings: panel.querySelector('#ed-warnings'),
       a11yTest: panel.querySelector('#ed-a11y-test'),
       file: panel.querySelector('#ed-file'),
+      markerStore: panel.querySelector('#ed-marker-store'),
+      markerAuto: panel.querySelector('#ed-marker-auto'),
+      markerColor: panel.querySelector('#ed-marker-color'),
+      markerFile: panel.querySelector('#ed-marker-file'),
     };
+
+    this.#bindMarkerControls(panel);
 
     panel.querySelectorAll('.ed-mode-btn').forEach((btn) => {
       btn.addEventListener('click', () => this.#setMode(btn.dataset.mode, btn));
@@ -603,6 +700,12 @@ export class GraphEditor {
     this.#el.oneWay.addEventListener('change', applyToSelectedEdge);
     this.#el.edgeCost.addEventListener('change', applyToSelectedEdge);
 
+    this.#el.btn2d = panel.querySelector('#ed-2d');
+    this.#el.btn2d.addEventListener('click', () => this.#toggle2D());
+
+    // Taslak zaten her değişiklikte localStorage'a yazıldığı için onay sormadan çıkılır
+    panel.querySelector('#ed-exit').addEventListener('click', () => { location.href = './'; });
+
     panel.querySelector('#ed-delete-selected').addEventListener('click', () => this.#deleteSelection());
     panel.querySelector('#ed-clear-route').addEventListener('click', () => {
       this.routeRenderer.clear();
@@ -628,17 +731,121 @@ export class GraphEditor {
       this.#el.file.value = '';
     });
     panel.querySelector('#ed-reset').addEventListener('click', async () => {
-      if (!confirm('Taslak silinip graph.json dosyasındaki son hâle dönülecek. Emin misiniz?')) return;
+      if (!confirm('TÜM noktalar ve kenarlar silinecek, graph.json dosyası da boşaltılacak.\nEmin misiniz?')) return;
+      this.graph = this.#normalize({});
       localStorage.removeItem(this.config.editor.autosaveKey);
-      try {
-        const res = await fetch(this.config.paths.graph, { cache: 'no-store' });
-        this.graph = this.#normalize(res.ok ? await res.json() : {});
-      } catch { this.graph = this.#normalize({}); }
       this.#clearSelection();
       this.chainNodeId = null;
+      this.routeRenderer.clear();
       this.#commit(false);
-      this.#setStatus('Taslak sıfırlandı.');
+      await this.#saveToServer('Graf sıfırlandı ve graph.json boşaltıldı.');
     });
+  }
+
+  // ---------------- Mağaza konum imleci düzenleme ----------------
+
+  #bindMarkerControls(panel) {
+    const el = this.#el;
+
+    const currentEntry = () => {
+      const id = el.markerStore.value;
+      const m = this.graph.storeMarkers;
+      if (!m[id]) m[id] = { logo: null, color: null };
+      return [id, m[id]];
+    };
+
+    // Ne logo ne elle renk kaldıysa kaydı temizle (varsayılan pin kullanılır)
+    const prune = (id) => {
+      const e = this.graph.storeMarkers[id];
+      if (e && !e.logo && !e.color) delete this.graph.storeMarkers[id];
+    };
+
+    el.markerStore.addEventListener('change', () => this.#syncMarkerControls());
+
+    panel.querySelector('#ed-marker-upload').addEventListener('click', () => el.markerFile.click());
+    el.markerFile.addEventListener('change', async () => {
+      const file = el.markerFile.files[0];
+      el.markerFile.value = '';
+      if (!file) return;
+      const [id, entry] = currentEntry();
+      try {
+        entry.logo = await this.#fileToLogoDataUrl(file);
+        this.#commit();
+        this.#setStatus(`${id} logosu yüklendi${entry.color ? '' : ' — pin rengi logodan alınacak'}.`);
+      } catch (err) {
+        this.#setStatus(`Görsel okunamadı: ${err.message ?? err}`);
+      }
+    });
+
+    panel.querySelector('#ed-marker-clear').addEventListener('click', () => {
+      const [id, entry] = currentEntry();
+      if (!entry.logo) { this.#setStatus(`${id} için yüklü logo yok.`); prune(id); return; }
+      entry.logo = null;
+      prune(id);
+      this.#commit();
+      this.#setStatus(`${id} logosu silindi — pinde baş harf gösterilir.`);
+    });
+
+    el.markerAuto.addEventListener('change', () => {
+      const [id, entry] = currentEntry();
+      entry.color = el.markerAuto.checked ? null : el.markerColor.value;
+      prune(id);
+      this.#commit();
+      this.#setStatus(el.markerAuto.checked
+        ? `${id}: pin rengi otomatik (logodaki baskın renk).`
+        : `${id}: pin rengi elle atandı (${el.markerColor.value}).`);
+    });
+
+    el.markerColor.addEventListener('input', () => {
+      const [, entry] = currentEntry();
+      el.markerAuto.checked = false;
+      entry.color = el.markerColor.value;
+      this.#commit();
+    });
+
+    this.#syncMarkerControls();
+  }
+
+  /** Seçili mağazanın kayıtlı imleç ayarlarını form kontrollerine yansıtır. */
+  #syncMarkerControls() {
+    const entry = this.graph.storeMarkers[this.#el.markerStore.value];
+    this.#el.markerAuto.checked = !entry?.color;
+    if (entry?.color) this.#el.markerColor.value = entry.color;
+  }
+
+  /** Yüklenen görseli kare kırpıp 128px'e küçültür; data-URL graph.json'da saklanır. */
+  async #fileToLogoDataUrl(file) {
+    const url = URL.createObjectURL(file);
+    try {
+      const img = await new Promise((resolve, reject) => {
+        const i = new Image();
+        i.onload = () => resolve(i);
+        i.onerror = () => reject(new Error('geçersiz görsel'));
+        i.src = url;
+      });
+      const S = 128;
+      const canvas = document.createElement('canvas');
+      canvas.width = canvas.height = S;
+      const ctx = canvas.getContext('2d');
+      const scale = Math.max(S / img.width, S / img.height);
+      const w = img.width * scale, h = img.height * scale;
+      ctx.drawImage(img, (S - w) / 2, (S - h) / 2, w, h);
+      return canvas.toDataURL('image/png');
+    } finally {
+      URL.revokeObjectURL(url);
+    }
+  }
+
+  // ---------------- 2B kuş bakışı görünümü ----------------
+
+  // Asıl mantık SceneManager.setTopView'da (kiosk moduyla ortak kullanılır)
+  #toggle2D() {
+    const on = !this.sm.topViewActive;
+    this.sm.setTopView(on);
+    this.#el.btn2d.classList.toggle('active', on);
+    this.#setStatus(on
+      ? '2B kuş bakışı açık — sürükle: kaydır · tekerlek: yakınlaş/uzaklaş.'
+      : '3B görünüme dönüldü.');
   }
 
   #setMode(mode, btn) {
@@ -674,6 +881,7 @@ export class GraphEditor {
       if (e.key.toLowerCase() === 'g') {
         this.#gridHelper.visible = !this.#gridHelper.visible;
       }
+      if (e.key === '2') this.#toggle2D();
     });
   }
 
@@ -682,6 +890,7 @@ export class GraphEditor {
   #deleteSelection() {
     if (!this.selection) return;
     if (this.selection.kind === 'node') this.#deleteNode(this.selection.id);
+    else if (this.selection.kind === 'lamp') this.#deleteLamp(this.selection.id);
     else {
       this.graph.edges.splice(this.selection.index, 1);
       this.#clearSelection();
@@ -705,12 +914,17 @@ export class GraphEditor {
         pos: n.pos.map((v) => Math.round(v * 1000) / 1000),
       })),
       edges: this.graph.edges,
+      lamps: this.graph.lamps.map((l) => ({
+        ...l,
+        pos: l.pos.map((v) => Math.round(v * 1000) / 1000),
+      })),
+      storeMarkers: this.graph.storeMarkers,
     };
     return JSON.stringify(out, null, 2);
   }
 
   /** Grafı sunucudaki assets/data/graph.json dosyasına doğrudan yazar (server.py gerekir). */
-  async #saveToServer() {
+  async #saveToServer(successMsg = '✓ graph.json dosyasına kaydedildi. Kiosk ekranı yenilendiğinde bu ağı kullanır.') {
     try {
       const res = await fetch('/api/save-graph', {
         method: 'POST',
@@ -718,7 +932,7 @@ export class GraphEditor {
         body: this.#exportJson(),
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      this.#setStatus('✓ graph.json dosyasına kaydedildi. Kiosk ekranı yenilendiğinde bu ağı kullanır.');
+      this.#setStatus(successMsg);
     } catch {
       this.#setStatus('Sunucu kaydı desteklemiyor (server.py ile başlatın) — dosya indiriliyor.');
       this.#download();
@@ -737,7 +951,7 @@ export class GraphEditor {
 
   #refreshStats() {
     this.#el.counts.textContent =
-      `${this.graph.nodes.length} nokta · ${this.graph.edges.length} kenar`;
+      `${this.graph.nodes.length} nokta · ${this.graph.edges.length} kenar · ${this.graph.lamps.length} lamba`;
     const warnings = this.engine.validate();
     this.#el.warnings.textContent = warnings.length
       ? `⚠ ${warnings.slice(0, 6).join('\n⚠ ')}${warnings.length > 6 ? `\n… +${warnings.length - 6}` : ''}`
@@ -764,5 +978,14 @@ export class GraphEditor {
       }
     }
     return `${prefix}${String(max + 1).padStart(3, '0')}`;
+  }
+
+  #nextLampId() {
+    let max = 0;
+    for (const l of this.graph.lamps) {
+      const num = parseInt(l.id.replace('LAMP_', ''), 10);
+      if (!Number.isNaN(num)) max = Math.max(max, num);
+    }
+    return `LAMP_${String(max + 1).padStart(3, '0')}`;
   }
 }

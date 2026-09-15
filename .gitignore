@@ -8,3 +8,10 @@ __pycache__/
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# Local Edge profile used for in-app browser tests (do not publish)
+_edgeprofile/
+
+# Headless smoke screenshots
+_smoke_*.png
+_cdp_*.mjs

@@ -51,6 +51,13 @@ export class CameraDirector {
     const sphere = box.getBoundingSphere(new THREE.Sphere());
     const distance = this.#fitDistance(sphere.radius) * cam.fitPadding;
 
+    // 2B kuş bakışı açıkken kadrajlama da tepeden yapılır (polar kilidiyle çakışmasın)
+    if (this.sceneManager.topViewActive) {
+      const position = new THREE.Vector3(center.x, center.y + distance, center.z + distance * 0.001);
+      this.#startTween(position, center, cam.frameMs);
+      return;
+    }
+
     const { camera, controls } = this.sceneManager;
     const offset = camera.position.clone().sub(controls.target);
     const currentAzimuth = Math.atan2(offset.x, offset.z);
@@ -65,13 +72,20 @@ export class CameraDirector {
 
   goHome(instant = false) {
     if (!this.#home) return;
+
+    let { position, target } = this.#home;
+    if (this.sceneManager.topViewActive) {
+      const distance = position.clone().sub(target).length();
+      position = new THREE.Vector3(target.x, target.y + distance, target.z + distance * 0.001);
+    }
+
     if (instant) {
-      this.sceneManager.camera.position.copy(this.#home.position);
-      this.sceneManager.controls.target.copy(this.#home.target);
+      this.sceneManager.camera.position.copy(position);
+      this.sceneManager.controls.target.copy(target);
       this.sceneManager.controls.update();
       return;
     }
-    this.#startTween(this.#home.position, this.#home.target, this.config.camera.homeMs);
+    this.#startTween(position, target, this.config.camera.homeMs);
   }
 
   #fitDistance(radius) {

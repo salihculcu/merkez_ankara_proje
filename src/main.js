@@ -5,10 +5,13 @@ import { InteractionManager } from './InteractionManager.js';
 import { PathfindingEngine } from './PathfindingEngine.js';
 import { RouteRenderer } from './RouteRenderer.js';
 import { CameraDirector } from './CameraDirector.js';
+import { LampSystem } from './LampSystem.js';
+import { StoreMarkers } from './StoreMarkers.js';
 import { UIManager } from './UIManager.js';
 
 const isEditorMode = new URLSearchParams(location.search).has('editor');
 
+installKioskGuards();
 setupErrorOverlay();
 boot().catch((err) => {
   console.error('[main] Başlatma hatası:', err);
@@ -48,19 +51,33 @@ async function boot() {
   const camera = new CameraDirector(sceneManager, CONFIG);
   camera.setHomeFromBounds(sceneManager.bounds);
 
+  const lampSystem = new LampSystem(sceneManager, CONFIG);
+  const storeMarkers = new StoreMarkers(sceneManager, CONFIG);
+  wireDayNightToggle(sceneManager, lampSystem);
+
   sceneManager.start();
+
+  // Sahada performans ayıklama için konsol kancası (ör. __ma.renderer.info.render)
+  window.__ma = { sceneManager, renderer: sceneManager.renderer };
 
   if (isEditorMode) {
     const { GraphEditor } = await import('./editor/GraphEditor.js');
-    const editor = new GraphEditor(sceneManager, engine, routeRenderer, CONFIG);
+    const editor = new GraphEditor(sceneManager, engine, routeRenderer, lampSystem, storeMarkers, CONFIG);
     const hitboxIds = sceneManager.hitboxes.map((h) => h.userData.storeId);
     await editor.init([...new Set([...storeIds, ...hitboxIds])]);
     ui.hideLoading();
     return;
   }
 
+  // Kiosk modunda lambalar ve mağaza pinleri graph.json'dan gelir
+  lampSystem.setLamps(engine.graph.lamps ?? []);
+  storeMarkers.setMarkers(engine.graph.storeMarkers ?? {});
+
   // ---------- Kiosk modu ----------
-  new InteractionManager(sceneManager, bus);
+  wireTopViewToggle(sceneManager);
+  wireEditorLink();
+  const interaction = new InteractionManager(sceneManager, bus);
+  interaction.setMarkerSource(storeMarkers);
   const hitboxStoreIds = sceneManager.hitboxes.map((h) => h.userData.storeId);
   ui.init(storesMeta, hitboxStoreIds);
 
@@ -105,11 +122,48 @@ async function boot() {
     activeStoreId = null;
     routeRenderer.clear();
     ui.hideCard();
+    ui.closePanel();
     ui.setAccessibility(false);
+    sceneManager.setTopView(false);
+    document.getElementById('view2d-toggle').setAttribute('aria-pressed', 'false');
     camera.goHome();
   });
 
   ui.hideLoading();
+}
+
+// Kiosk sayfasındaki 2B kuş bakışı düğmesi (editörde ayrı düğme var).
+function wireTopViewToggle(sceneManager) {
+  const btn = document.getElementById('view2d-toggle');
+  btn.addEventListener('click', () => {
+    const on = !sceneManager.topViewActive;
+    sceneManager.setTopView(on);
+    btn.setAttribute('aria-pressed', String(on));
+  });
+}
+
+// "Edit Mod" düğmesi editör sayfasına yönlendirir.
+function wireEditorLink() {
+  document.getElementById('editor-link').addEventListener('click', () => {
+    location.href = './?editor';
+  });
+}
+
+// Gece/Gündüz düğmesi hem kiosk hem editör modunda çalışır.
+function wireDayNightToggle(sceneManager, lampSystem) {
+  const btn = document.getElementById('daynight-toggle');
+  const label = document.getElementById('daynight-label');
+  let night = false;
+
+  const apply = (value) => {
+    night = value;
+    document.body.classList.toggle('night-mode', night);
+    btn.setAttribute('aria-pressed', String(night));
+    label.textContent = night ? 'Gece' : 'Gündüz';
+    sceneManager.setNight(night);
+    lampSystem.setNight(night);
+  };
+  btn.addEventListener('click', () => apply(!night));
 }
 
 function placeStartMarker(engine, routeRenderer) {
@@ -129,6 +183,20 @@ function errorMessage(code) {
     STORE_NO_DOOR: STRINGS.storeNoDoor,
     DOOR_DISCONNECTED: STRINGS.doorDisconnected,
   }[code] ?? STRINGS.routeNotFound;
+}
+
+// ---------- Kiosk jest kilidi (tablet uzun basış / seçim / menü) ----------
+
+function installKioskGuards() {
+  const block = (e) => e.preventDefault();
+  document.addEventListener('contextmenu', block);
+  document.addEventListener('dragstart', block);
+  document.addEventListener('gesturestart', block); // eski iOS sayfa pinch-zoom
+  document.addEventListener('selectstart', (e) => {
+    const el = e.target;
+    if (el && el.closest?.('input, textarea, select')) return;
+    e.preventDefault();
+  });
 }
 
 // ---------- Hata görünürlüğü (kiosk sahada ayıklama için) ----------
