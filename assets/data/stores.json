@@ -1,14 +1,5 @@
 {
   "ZARA": { "name": "Zara", "category": "Giyim", "floor": 1 },
   "BOYNER": { "name": "Boyner", "category": "Giyim", "floor": 1 },
-  "BIGCHEFS": { "name": "Big Chefs", "category": "Yeme & İçme", "floor": 1 },
-  "MAVI": { "name": "Mavi", "category": "Giyim", "floor": 1 },
-  "LCWAIKIKI": { "name": "LC Waikiki", "category": "Giyim", "floor": 1 },
-  "ADIDAS": { "name": "Adidas", "category": "Giyim", "floor": 1 },
-  "NIKE": { "name": "Nike", "category": "Giyim", "floor": 1 },
-  "SKECHERS": { "name": "Skechers", "category": "Giyim", "floor": 1 },
-  "SEPHORA": { "name": "Sephora", "category": "Kozmetik", "floor": 1 },
-  "PENTI": { "name": "Penti", "category": "İç Giyim", "floor": 1 },
-  "STARBUCKS": { "name": "Starbucks", "category": "Yeme & İçme", "floor": 1 },
-  "ATASUNOPTIK": { "name": "Atasun Optik", "category": "Hizmet", "floor": 1 }
+  "BIGCHEFS": { "name": "Big Chefs", "category": "Yeme & İçme", "floor": 1 }
 }
