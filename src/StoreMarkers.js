@@ -51,48 +51,51 @@ export class StoreMarkers {
   setMarkers(markerData = {}) {
     const token = ++this.#buildToken;
     for (const entry of this.#sprites.values()) {
-      this.group.remove(entry.sprite, entry.ghost);
-      entry.sprite.material.map?.dispose(); // doku hayaletle paylaşılır, bir kez yeter
+      this.group.remove(entry.sprite);
+      if (entry.ghost) this.group.remove(entry.ghost);
+      entry.sprite.material.map?.dispose();
       entry.sprite.material.dispose();
-      entry.ghost.material.dispose();
+      entry.ghost?.material.dispose();
     }
     this.#sprites.clear();
 
     const size = this.size;
     const cfg = this.config.storeMarkers;
+    const useGhosts = this.sm.perfProfile.markerGhosts !== false;
     let phase = 0;
 
     for (const [storeId, anchor] of this.#anchors) {
       const data = markerData[storeId] ?? {};
 
-      // Görünen kısım: normal derinlik testiyle çizilir
       const sprite = new THREE.Sprite(new THREE.SpriteMaterial({
         transparent: true,
         depthTest: true,
         depthWrite: false,
       }));
-      sprite.center.set(0.5, 0); // konum = pinin ucu
+      sprite.center.set(0.5, 0);
       sprite.scale.set(size, size * 1.25, 1);
       sprite.renderOrder = 56;
       sprite.userData.storeId = storeId;
 
-      // Bina arkasında kalan kısım: ters derinlik testiyle (GreaterDepth)
-      // yalnızca kesilen bölgede görünen soluk kopya
-      const ghost = new THREE.Sprite(new THREE.SpriteMaterial({
-        transparent: true,
-        opacity: cfg.occludedOpacity,
-        depthTest: true,
-        depthWrite: false,
-        depthFunc: THREE.GreaterDepth,
-      }));
-      ghost.center.copy(sprite.center);
-      ghost.scale.copy(sprite.scale);
-      ghost.renderOrder = 55;
+      let ghost = null;
+      if (useGhosts) {
+        ghost = new THREE.Sprite(new THREE.SpriteMaterial({
+          transparent: true,
+          opacity: cfg.occludedOpacity,
+          depthTest: true,
+          depthWrite: false,
+          depthFunc: THREE.GreaterDepth,
+        }));
+        ghost.center.copy(sprite.center);
+        ghost.scale.copy(sprite.scale);
+        ghost.renderOrder = 55;
+      }
 
       const baseY = anchor.pos.y + size * cfg.yOffset;
       sprite.position.set(anchor.pos.x, baseY, anchor.pos.z);
-      ghost.position.copy(sprite.position);
-      this.group.add(sprite, ghost);
+      if (ghost) ghost.position.copy(sprite.position);
+      this.group.add(sprite);
+      if (ghost) this.group.add(ghost);
       this.#sprites.set(storeId, { sprite, ghost, baseY, phase: phase += 1.7 });
 
       this.#applyTexture(sprite, ghost, storeId, data, token);
@@ -112,8 +115,10 @@ export class StoreMarkers {
       sprite.material.map?.dispose();
       sprite.material.map = tex;
       sprite.material.needsUpdate = true;
-      ghost.material.map = tex; // aynı doku, soluk opaklıkla
-      ghost.material.needsUpdate = true;
+      if (ghost) {
+        ghost.material.map = tex;
+        ghost.material.needsUpdate = true;
+      }
     };
 
     if (data.logo) {
@@ -220,7 +225,7 @@ export class StoreMarkers {
     for (const { sprite, ghost, baseY, phase } of this.#sprites.values()) {
       // |sin| ile yumuşak zıplama: yere değip tekrar yükselir
       sprite.position.y = baseY + Math.abs(Math.sin(elapsed * cfg.bounceSpeed + phase)) * amp;
-      ghost.position.y = sprite.position.y;
+      if (ghost) ghost.position.y = sprite.position.y;
     }
   }
 }

@@ -1,11 +1,18 @@
-// Cihaz sınıfı: telefon/tablet tespiti. Kiosk PC'leri (Windows dokunmatik dahil) masaüstü sayılır.
-// Test için herhangi bir cihazda `?mobile` parametresiyle mobil profil zorlanabilir.
+// Cihaz sınıfı: telefon/tablet tespiti.
+// `?mobile` ile hafif profil, `?quality` ile tam kalite zorlanır.
 export const IS_MOBILE = (() => {
   if (new URLSearchParams(location.search).has('mobile')) return true;
   if (navigator.userAgentData?.mobile) return true;
   if (/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)) return true;
-  // iPadOS 13+ kendini Mac olarak tanıtır
   return navigator.userAgent.includes('Mac') && navigator.maxTouchPoints > 1;
+})();
+
+// Android tablet + yüksek DPR dokunmatik (Xiaomi vb.): masaüstü AA/DPR=2 tableti 8–10 FPS'e gömer.
+export const USE_LIGHT_PERF = (() => {
+  if (new URLSearchParams(location.search).has('quality')) return false;
+  if (IS_MOBILE) return true;
+  if (navigator.maxTouchPoints > 1 && window.devicePixelRatio >= 1.5) return true;
+  return false;
 })();
 
 // Uygulama genel ayarları — sahne ölçeğine ve kiosk donanımına göre buradan kalibre edilir.
@@ -19,21 +26,28 @@ export const CONFIG = {
     // Draco wasm/js: lib/jsm/libs/draco/gltf/ (DRACOLoader DRACO_GLTF_CONFIG)
   },
 
-  // Performans: görünümü bozmadan ışık sayısı ve boşta kare tavanı.
-  // antialias / piksel oranı / PBR / ortam renkleri masaüstünde olduğu gibi kalır.
+  // desktop = fareli kiosk PC (görünüm aynı). light = tablet; biraz yumuşak, PBR/renk durur.
   perf: {
     desktop: { maxPixelRatio: 2,   antialias: true,  maxRealLights: 4 },
-    mobile:  { maxPixelRatio: 1.5, antialias: false, maxRealLights: 2, maxTextureSize: 1024, routeGhosts: false },
+    mobile:  {
+      maxPixelRatio: 1.0,
+      antialias: false,
+      maxRealLights: 2,
+      maxTextureSize: 768,
+      routeGhosts: false,
+      markerGhosts: false,
+      startScale: 0.85,
+    },
     adaptive: {
       enabled: true,
-      intervalSec: 2.5,
-      slowMs: 40,
-      fastMs: 26,
-      minScale: 0.7,
-      step: 0.85,
+      intervalSec: 0.9,
+      slowMs: 34,         // ≈30 fps altı — ölçek düşür
+      fastMs: 22,
+      minScale: 0.5,
+      step: 0.8,
     },
     idle: {
-      desktopFps: 0,   // 0 = tavan yok (144 Hz ekran olduğu gibi)
+      desktopFps: 0,
       mobileFps: 30,
       settleMs: 450,
     },

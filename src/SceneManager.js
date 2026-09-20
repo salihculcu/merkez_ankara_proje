@@ -3,7 +3,8 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { DRACOLoader, DRACO_GLTF_CONFIG } from 'three/addons/loaders/DRACOLoader.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
-import { IS_MOBILE } from './config.js';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { USE_LIGHT_PERF } from './config.js';
 
 /**
  * Sahne kurulumu, GLB yükleme, hitbox hazırlama ve render döngüsü.
@@ -43,7 +44,7 @@ export class SceneManager {
     const { config } = this;
 
     // Cihaz profili: mobilde antialias kapalı, piksel oranı sınırlı (doluluk maliyeti dpr² ile büyür)
-    this.perfProfile = IS_MOBILE ? config.perf.mobile : config.perf.desktop;
+    this.perfProfile = USE_LIGHT_PERF ? config.perf.mobile : config.perf.desktop;
     this.renderer = new THREE.WebGLRenderer({
       antialias: this.perfProfile.antialias,
       powerPreference: 'high-performance',
@@ -51,7 +52,8 @@ export class SceneManager {
       alpha: false,
     });
     this.#basePixelRatio = Math.min(window.devicePixelRatio, this.perfProfile.maxPixelRatio);
-    this.renderer.setPixelRatio(this.#basePixelRatio);
+    this.#resScale = this.perfProfile.startScale ?? 1;
+    this.renderer.setPixelRatio(this.#basePixelRatio * this.#resScale);
     this.renderer.setSize(window.innerWidth, window.innerHeight);
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1.05;
@@ -86,7 +88,7 @@ export class SceneManager {
     this.onUpdate((dt) => this.#updateDayNight(dt));
 
     this.controls = new OrbitControls(this.camera, this.canvas);
-    this.controls.enableDamping = true;
+    this.controls.enableDamping = !USE_LIGHT_PERF;
     this.controls.dampingFactor = 0.08;
     this.controls.maxPolarAngle = THREE.MathUtils.degToRad(82); // zemin altına inme
     this.controls.screenSpacePanning = false;
@@ -132,7 +134,7 @@ export class SceneManager {
 
     // Mobilde önce hafifletilmiş model denenir; yoksa ana modele düşülür.
     let gltf;
-    if (IS_MOBILE && this.config.paths.modelMobile) {
+    if (USE_LIGHT_PERF && this.config.paths.modelMobile) {
       try {
         gltf = await loadUrl(this.config.paths.modelMobile);
         console.info('[SceneManager] Mobil model yüklendi:', this.config.paths.modelMobile);
@@ -143,9 +145,6 @@ export class SceneManager {
     if (!gltf) gltf = await loadUrl(this.config.paths.model);
 
     this.modelRoot = gltf.scene;
-    if (IS_MOBILE && this.perfProfile.maxTextureSize) {
-      this.#downscaleTextures(this.modelRoot, this.perfProfile.maxTextureSize);
-    }
     this.scene.add(this.modelRoot);
 
     const storeIdSet = new Set(storeIds.map((s) => s.toUpperCase()));
@@ -181,6 +180,11 @@ export class SceneManager {
         this.walkableMeshes.push(obj);
       }
     });
+
+    if (this.perfProfile.maxTextureSize) {
+      this.#downscaleTextures(this.modelRoot, this.perfProfile.maxTextureSize);
+    }
+    this.#mergeStaticBatches(this.modelRoot);
 
     // Statik model: her kare matrix yeniden hesaplanmaz (görünüm aynı)
     this.modelRoot.updateMatrixWorld(true);
@@ -229,6 +233,59 @@ export class SceneManager {
       }
     });
     if (count) console.info(`[SceneManager] ${count} doku ${maxSize}px'e küçültüldü (mobil bellek koruması).`);
+  }
+
+  /**
+   * Aynı malzeme örneğini paylaşan statik mesh'leri birleştirir.
+   * Renk/doku değişmez; sadece GPU'ya giden çizim komutu azalır.
+   */
+  #mergeStaticBatches(root) {
+    const groups = new Map();
+    root.updateMatrixWorld(true);
+    root.traverse((obj) => {
+      if (!obj.isMesh || obj.userData.storeId || !obj.visible) return;
+      if (Array.isArray(obj.material)) return;
+      const list = groups.get(obj.material.uuid) ?? [];
+      list.push(obj);
+      groups.set(obj.material.uuid, list);
+    });
+
+    let batches = 0;
+    let removed = 0;
+    for (const meshes of groups.values()) {
+      if (meshes.length < 2) continue;
+      const geos = [];
+      for (const mesh of meshes) {
+        const geo = mesh.geometry.clone();
+        geo.applyMatrix4(mesh.matrixWorld);
+        geos.push(geo);
+      }
+      let merged = null;
+      try {
+        merged = mergeGeometries(geos, false);
+      } catch {
+        merged = null;
+      }
+      for (const geo of geos) geo.dispose();
+      if (!merged) continue;
+
+      const batch = new THREE.Mesh(merged, meshes[0].material);
+      batch.name = `BATCH_${meshes[0].material.name || batches}`;
+      batch.castShadow = false;
+      batch.receiveShadow = false;
+      root.add(batch);
+      this.walkableMeshes.push(batch);
+
+      for (const mesh of meshes) {
+        const idx = this.walkableMeshes.indexOf(mesh);
+        if (idx >= 0) this.walkableMeshes.splice(idx, 1);
+        mesh.removeFromParent();
+        mesh.geometry?.dispose();
+        removed += 1;
+      }
+      batches += 1;
+    }
+    if (batches) console.info(`[SceneManager] ${removed} mesh ${batches} batch halinde birleştirildi.`);
   }
 
   // Bloklar arası yürüyüş alanı GLB'de ayrı bir zemin mesh'i olmayabilir;
@@ -429,7 +486,7 @@ export class SceneManager {
       const now = performance.now();
       const idleCfg = this.config.perf.idle ?? {};
       const cap = this.isIdle
-        ? (IS_MOBILE ? (idleCfg.mobileFps ?? 30) : (idleCfg.desktopFps ?? 0))
+        ? (USE_LIGHT_PERF ? (idleCfg.mobileFps ?? 30) : (idleCfg.desktopFps ?? 0))
         : 0;
       if (cap > 0 && now - lastRender < (1000 / cap) - 0.75) return;
 
