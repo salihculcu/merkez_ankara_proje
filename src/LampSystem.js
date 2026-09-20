@@ -1,5 +1,4 @@
 import * as THREE from 'three';
-import { USE_LIGHT_PERF } from './config.js';
 
 /**
  * Sokak lambaları: editörde yerleştirilir, graph.json içinde `lamps` dizisinde saklanır.
@@ -22,8 +21,7 @@ export class LampSystem {
     this.group.name = 'LAMP_LAYER';
     sceneManager.scene.add(this.group);
 
-    const profile = USE_LIGHT_PERF ? config.perf.mobile : config.perf.desktop;
-    this.#maxReal = profile.maxRealLights ?? config.lamps.maxRealLights;
+    this.#maxReal = sceneManager.perfProfile.maxRealLights ?? config.lamps.maxRealLights;
 
     this.#buildSharedAssets();
     sceneManager.onUpdate((dt) => this.#update(dt));

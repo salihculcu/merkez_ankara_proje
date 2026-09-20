@@ -15,6 +15,36 @@ export const USE_LIGHT_PERF = (() => {
   return false;
 })();
 
+/**
+ * Tablet kademesi: RAM / çekirdek / GPU.
+ * `?tier=low|mid|high` ile test edilir. Zayıf cihazda düşük piksel, güçlüde tavan 1.5.
+ */
+export function detectTabletTier(gpuRenderer = '') {
+  const forced = new URLSearchParams(location.search).get('tier');
+  if (forced === 'low' || forced === 'mid' || forced === 'high') return forced;
+
+  const gpu = String(gpuRenderer).toLowerCase();
+  if (/mali-g5[0-2]|mali-4|mali-t|adreno \(tm\) [345]|adreno \(tm\) 5[0-4]|powervr/.test(gpu)) {
+    return 'low';
+  }
+  if (/adreno \(tm\) [78]|mali-g7|mali-g8|xclipse|apple gpu|apple m\d|adreno \(tm\) 6[5-9]/.test(gpu)) {
+    return 'high';
+  }
+
+  const mem = navigator.deviceMemory;
+  const cores = navigator.hardwareConcurrency ?? 4;
+  if (mem != null && mem <= 3) return 'low';
+  if ((mem ?? 0) >= 6 || cores >= 8) return 'high';
+  if ((mem ?? 0) >= 4 || cores >= 6) return 'mid';
+  return cores <= 4 ? 'low' : 'mid';
+}
+
+export function resolvePerfProfile(config, { gpuRenderer = '' } = {}) {
+  if (!USE_LIGHT_PERF) return { ...config.perf.desktop, tier: 'desktop' };
+  const tier = detectTabletTier(gpuRenderer);
+  return { ...config.perf.tablet[tier], tier };
+}
+
 // Uygulama genel ayarları — sahne ölçeğine ve kiosk donanımına göre buradan kalibre edilir.
 export const CONFIG = {
   paths: {
@@ -26,17 +56,37 @@ export const CONFIG = {
     // Draco wasm/js: lib/jsm/libs/draco/gltf/ (DRACOLoader DRACO_GLTF_CONFIG)
   },
 
-  // desktop = fareli kiosk PC (görünüm aynı). light = tablet; biraz yumuşak, PBR/renk durur.
+  // desktop = fareli kiosk PC. tablet.high/mid/low = dokunmatik; tavan 1.5, zayıf 1.0.
   perf: {
-    desktop: { maxPixelRatio: 2,   antialias: true,  maxRealLights: 4 },
-    mobile:  {
-      maxPixelRatio: 1.0,
-      antialias: false,
-      maxRealLights: 2,
-      maxTextureSize: 768,
-      routeGhosts: false,
-      markerGhosts: false,
-      startScale: 0.85,
+    desktop: { maxPixelRatio: 2, antialias: true, maxRealLights: 4 },
+    tablet: {
+      high: {
+        maxPixelRatio: 1.5,
+        antialias: false,
+        maxRealLights: 3,
+        maxTextureSize: 1024,
+        startScale: 1,
+        routeGhosts: true,
+        markerGhosts: true,
+      },
+      mid: {
+        maxPixelRatio: 1.25,
+        antialias: false,
+        maxRealLights: 2,
+        maxTextureSize: 768,
+        startScale: 0.95,
+        routeGhosts: false,
+        markerGhosts: false,
+      },
+      low: {
+        maxPixelRatio: 1.0,
+        antialias: false,
+        maxRealLights: 2,
+        maxTextureSize: 640,
+        startScale: 0.8,
+        routeGhosts: false,
+        markerGhosts: false,
+      },
     },
     adaptive: {
       enabled: true,

@@ -4,7 +4,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { DRACOLoader, DRACO_GLTF_CONFIG } from 'three/addons/loaders/DRACOLoader.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { USE_LIGHT_PERF } from './config.js';
+import { USE_LIGHT_PERF, resolvePerfProfile } from './config.js';
 
 /**
  * Sahne kurulumu, GLB yükleme, hitbox hazırlama ve render döngüsü.
@@ -43,18 +43,19 @@ export class SceneManager {
   async init({ storeIds = [], onProgress = null } = {}) {
     const { config } = this;
 
-    // Cihaz profili: mobilde antialias kapalı, piksel oranı sınırlı (doluluk maliyeti dpr² ile büyür)
-    this.perfProfile = USE_LIGHT_PERF ? config.perf.mobile : config.perf.desktop;
+    // Önce kaba profil (AA kararı), sonra GPU adına göre tablet kademesi netleşir.
+    this.perfProfile = resolvePerfProfile(config);
     this.renderer = new THREE.WebGLRenderer({
       antialias: this.perfProfile.antialias,
       powerPreference: 'high-performance',
       stencil: false,
       alpha: false,
     });
-    this.#basePixelRatio = Math.min(window.devicePixelRatio, this.perfProfile.maxPixelRatio);
-    this.#resScale = this.perfProfile.startScale ?? 1;
-    this.renderer.setPixelRatio(this.#basePixelRatio * this.#resScale);
+    const gpuName = this.#readGpuName();
+    this.perfProfile = resolvePerfProfile(config, { gpuRenderer: gpuName });
+    this.#applyProfilePixelRatio();
     this.renderer.setSize(window.innerWidth, window.innerHeight);
+    console.info(`[SceneManager] Perf kademesi: ${this.perfProfile.tier} · GPU: ${gpuName || 'bilinmiyor'} · dpr≤${this.perfProfile.maxPixelRatio}`);
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1.05;
     this.container.appendChild(this.renderer.domElement);
@@ -88,7 +89,7 @@ export class SceneManager {
     this.onUpdate((dt) => this.#updateDayNight(dt));
 
     this.controls = new OrbitControls(this.camera, this.canvas);
-    this.controls.enableDamping = !USE_LIGHT_PERF;
+    this.controls.enableDamping = this.perfProfile.tier === 'desktop' || this.perfProfile.tier === 'high';
     this.controls.dampingFactor = 0.08;
     this.controls.maxPolarAngle = THREE.MathUtils.degToRad(82); // zemin altına inme
     this.controls.screenSpacePanning = false;
@@ -514,8 +515,11 @@ export class SceneManager {
     this.#fpsFrames = 0;
     this.#fpsTime = 0;
 
-    const scaleNote = this.#resScale < 1 ? ` · ${(this.#resScale * 100).toFixed(0)}%` : '';
-    this.#fpsEl.textContent = `${fps} FPS · ${avgMs.toFixed(1)} ms${scaleNote}`;
+    const bits = [];
+    if (this.perfProfile.tier && this.perfProfile.tier !== 'desktop') bits.push(this.perfProfile.tier);
+    if (this.#resScale < 1) bits.push(`${(this.#resScale * 100).toFixed(0)}%`);
+    const extra = bits.length ? ` · ${bits.join(' · ')}` : '';
+    this.#fpsEl.textContent = `${fps} FPS · ${avgMs.toFixed(1)} ms${extra}`;
     this.#fpsEl.className = fps >= 50 ? 'good' : fps >= 30 ? 'mid' : 'bad';
   }
 
@@ -548,6 +552,23 @@ export class SceneManager {
     this.renderer.setPixelRatio(this.#basePixelRatio * this.#resScale);
     this.renderer.setSize(window.innerWidth, window.innerHeight);
     console.info(`[SceneManager] Render ölçeği: ${(this.#basePixelRatio * this.#resScale).toFixed(2)} (ort. kare ${this.#frameAvgMs.toFixed(1)} ms)`);
+  }
+
+  #applyProfilePixelRatio() {
+    this.#basePixelRatio = Math.min(window.devicePixelRatio, this.perfProfile.maxPixelRatio);
+    this.#resScale = this.perfProfile.startScale ?? 1;
+    this.renderer.setPixelRatio(this.#basePixelRatio * this.#resScale);
+  }
+
+  #readGpuName() {
+    try {
+      const gl = this.renderer.getContext();
+      const ext = gl.getExtension('WEBGL_debug_renderer_info');
+      if (!ext) return '';
+      return String(gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) || '');
+    } catch {
+      return '';
+    }
   }
 
   #onResize() {
