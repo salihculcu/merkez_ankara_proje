@@ -51,17 +51,15 @@ export class StoreMarkers {
   setMarkers(markerData = {}) {
     const token = ++this.#buildToken;
     for (const entry of this.#sprites.values()) {
-      this.group.remove(entry.sprite);
-      if (entry.ghost) this.group.remove(entry.ghost);
+      this.group.remove(entry.sprite, entry.ghost);
       entry.sprite.material.map?.dispose(); // doku hayaletle paylaşılır, bir kez yeter
       entry.sprite.material.dispose();
-      entry.ghost?.material.dispose();
+      entry.ghost.material.dispose();
     }
     this.#sprites.clear();
 
     const size = this.size;
     const cfg = this.config.storeMarkers;
-    const useGhosts = this.sm.perfProfile.markerGhosts !== false;
     let phase = 0;
 
     for (const [storeId, anchor] of this.#anchors) {
@@ -79,26 +77,22 @@ export class StoreMarkers {
       sprite.userData.storeId = storeId;
 
       // Bina arkasında kalan kısım: ters derinlik testiyle (GreaterDepth)
-      // yalnızca kesilen bölgede görünen soluk kopya (tablette kapalı — 2× sprite)
-      let ghost = null;
-      if (useGhosts) {
-        ghost = new THREE.Sprite(new THREE.SpriteMaterial({
-          transparent: true,
-          opacity: cfg.occludedOpacity,
-          depthTest: true,
-          depthWrite: false,
-          depthFunc: THREE.GreaterDepth,
-        }));
-        ghost.center.copy(sprite.center);
-        ghost.scale.copy(sprite.scale);
-        ghost.renderOrder = 55;
-      }
+      // yalnızca kesilen bölgede görünen soluk kopya
+      const ghost = new THREE.Sprite(new THREE.SpriteMaterial({
+        transparent: true,
+        opacity: cfg.occludedOpacity,
+        depthTest: true,
+        depthWrite: false,
+        depthFunc: THREE.GreaterDepth,
+      }));
+      ghost.center.copy(sprite.center);
+      ghost.scale.copy(sprite.scale);
+      ghost.renderOrder = 55;
 
       const baseY = anchor.pos.y + size * cfg.yOffset;
       sprite.position.set(anchor.pos.x, baseY, anchor.pos.z);
-      if (ghost) ghost.position.copy(sprite.position);
-      this.group.add(sprite);
-      if (ghost) this.group.add(ghost);
+      ghost.position.copy(sprite.position);
+      this.group.add(sprite, ghost);
       this.#sprites.set(storeId, { sprite, ghost, baseY, phase: phase += 1.7 });
 
       this.#applyTexture(sprite, ghost, storeId, data, token);
@@ -114,14 +108,12 @@ export class StoreMarkers {
       const canvas = this.#drawPin(color, logoImg, storeId);
       const tex = new THREE.CanvasTexture(canvas);
       tex.colorSpace = THREE.SRGBColorSpace;
-      tex.anisotropy = 1;
+      tex.anisotropy = 4;
       sprite.material.map?.dispose();
       sprite.material.map = tex;
       sprite.material.needsUpdate = true;
-      if (ghost) {
-        ghost.material.map = tex; // aynı doku, soluk opaklıkla
-        ghost.material.needsUpdate = true;
-      }
+      ghost.material.map = tex; // aynı doku, soluk opaklıkla
+      ghost.material.needsUpdate = true;
     };
 
     if (data.logo) {
@@ -136,12 +128,12 @@ export class StoreMarkers {
 
   /** Pin çizimi: damla gövde + beyaz halka + yuvarlak logo / baş harf. */
   #drawPin(color, logoImg, storeId) {
-    const W = 160, H = 200;
+    const W = 256, H = 320;
     const canvas = document.createElement('canvas');
     canvas.width = W; canvas.height = H;
     const ctx = canvas.getContext('2d');
 
-    const cx = W * 0.5, cy = H * 0.37, R = W * 0.39;
+    const cx = 128, cy = 118, R = 100;
 
     // Gövde: üst daire + alt uca inen iki eğri
     ctx.beginPath();
@@ -175,7 +167,7 @@ export class StoreMarkers {
       ctx.restore();
     } else {
       ctx.fillStyle = color;
-      ctx.font = '700 68px "Segoe UI", system-ui, sans-serif';
+      ctx.font = '700 108px "Segoe UI", system-ui, sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText(storeId.charAt(0).toUpperCase(), cx, cy + 6);
@@ -224,13 +216,11 @@ export class StoreMarkers {
 
   #update(elapsed) {
     const cfg = this.config.storeMarkers;
-    const bounce = cfg.bounceWhenIdle !== false || !this.sm.isIdle;
-    const amp = bounce ? this.size * cfg.bounceAmp : 0;
+    const amp = this.size * cfg.bounceAmp;
     for (const { sprite, ghost, baseY, phase } of this.#sprites.values()) {
-      sprite.position.y = amp
-        ? baseY + Math.abs(Math.sin(elapsed * cfg.bounceSpeed + phase)) * amp
-        : baseY;
-      if (ghost) ghost.position.y = sprite.position.y;
+      // |sin| ile yumuşak zıplama: yere değip tekrar yükselir
+      sprite.position.y = baseY + Math.abs(Math.sin(elapsed * cfg.bounceSpeed + phase)) * amp;
+      ghost.position.y = sprite.position.y;
     }
   }
 }

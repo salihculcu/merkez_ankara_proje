@@ -12,11 +12,7 @@ export class CameraDirector {
     this.#home = null;
     this.#tween = null;
 
-    sceneManager.controls.addEventListener('start', () => {
-      this.#tween = null;
-      sceneManager.cameraBusy = false;
-      sceneManager.pokeActivity();
-    });
+    sceneManager.controls.addEventListener('start', () => { this.#tween = null; });
     sceneManager.onUpdate(() => this.#update());
   }
 
@@ -109,8 +105,6 @@ export class CameraDirector {
 
   #startTween(toPosition, toTarget, duration) {
     const { camera, controls } = this.sceneManager;
-    this.sceneManager.cameraBusy = true;
-    this.sceneManager.pokeActivity();
     this.#tween = {
       t0: performance.now(),
       duration,
@@ -130,10 +124,6 @@ export class CameraDirector {
     const { camera, controls } = this.sceneManager;
     camera.position.lerpVectors(tw.fromPosition, tw.toPosition, k);
     controls.target.lerpVectors(tw.fromTarget, tw.toTarget, k);
-    if (raw >= 1) {
-      this.#tween = null;
-      this.sceneManager.cameraBusy = false;
-      this.sceneManager.pokeActivity();
-    }
+    if (raw >= 1) this.#tween = null;
   }
 }

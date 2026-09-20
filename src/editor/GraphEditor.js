@@ -342,9 +342,9 @@ export class GraphEditor {
       this.graph.lamps.push({ id, pos: [point.x, point.y, point.z] });
       this.#commit();
       this.#selectLamp(id);
-      const real = this.lampSystem.maxRealLights;
+      const real = this.config.lamps.maxRealLights;
       this.#setStatus(this.graph.lamps.length > real
-        ? `${id} eklendi (${this.graph.lamps.length}. lamba — geceleyin kameraya en yakın ${real} tanesi gerçek ışık).`
+        ? `${id} eklendi (${this.graph.lamps.length}. lamba — ilk ${real} tanesi gerçek ışık verir).`
         : `${id} eklendi. Gece modunda yanar.`);
       return;
     }
@@ -521,10 +521,12 @@ export class GraphEditor {
     if (this.selection.kind === 'lamp') {
       const lamp = this.graph.lamps.find((l) => l.id === this.selection.id);
       if (!lamp) { el.textContent = 'Seçim yok.'; return; }
+      const order = this.graph.lamps.indexOf(lamp) + 1;
+      const real = order <= this.config.lamps.maxRealLights;
       el.textContent =
         `id: ${lamp.id}\ntip: sokak lambası` +
         `\npos: [${lamp.pos.map((v) => v.toFixed(2)).join(', ')}]` +
-        `\nışık: geceleyin kameraya en yakın ${this.lampSystem.maxRealLights} lamba gerçek; diğerleri sahte havuz`;
+        `\nışık: ${real ? 'gerçek ışık' : 'sadece görsel parlama'}`;
       return;
     }
 

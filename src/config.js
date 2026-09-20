@@ -19,44 +19,18 @@ export const CONFIG = {
     // Draco wasm/js: lib/jsm/libs/draco/gltf/ (DRACOLoader DRACO_GLTF_CONFIG)
   },
 
-  // Performans profilleri: kiosk/tablet fill-rate ve ışık maliyeti burada kesilir.
-  // materialMode 'lambert' = PBR yerine ucuz Lambert (kiosk kuşbakışında fark az, shader çok daha kısa).
+  // Performans profilleri: render çözünürlüğü, antialias ve gerçek lamba ışığı sayısı
   perf: {
-    desktop: {
-      maxPixelRatio: 1.5,
-      antialias: false,
-      maxRealLights: 4,
-      toneMapping: 'aces',
-      materialMode: 'lambert',
-      nightPixelScale: 0.85,
-      routeGhosts: true,
-      markerGhosts: true,
-    },
-    mobile: {
-      maxPixelRatio: 1.15,
-      antialias: false,
-      maxRealLights: 2,
-      maxTextureSize: 1024,
-      toneMapping: 'linear',
-      materialMode: 'lambert',
-      nightPixelScale: 0.8,
-      routeGhosts: false,
-      markerGhosts: false,
-    },
+    desktop: { maxPixelRatio: 2,   antialias: true,  maxRealLights: null }, // null = lamps.maxRealLights
+    mobile:  { maxPixelRatio: 1.5, antialias: false, maxRealLights: 6, maxTextureSize: 1024 },
     // Uyarlanabilir çözünürlük: kare süresi eşiği aşarsa render ölçeği kademeli düşürülür
     adaptive: {
       enabled: true,
-      intervalSec: 1.2,
-      slowMs: 33,         // ≈30 fps altı — ölçek düşür
-      fastMs: 20,         // rahat 50+ fps — ölçek geri yükselt
-      minScale: 0.55,
-      step: 0.8,
-    },
-    // Dokunulmayan / geçişsiz sahnede kare tavanı (7/24 kiosk GPU dinlenmesi)
-    idle: {
-      fps: 30,
-      activeFps: 60,
-      settleMs: 400,
+      intervalSec: 2.5,   // değerlendirme aralığı
+      slowMs: 40,         // ort. kare bu eşiği aşarsa ölçek düşür (≈25 fps altı)
+      fastMs: 26,         // ort. kare bunun altındaysa ölçek geri yükselt
+      minScale: 0.7,      // taban pixelRatio'nun altına inilmeyecek oran
+      step: 0.85,         // her adımda çarpan
     },
   },
 
@@ -90,8 +64,6 @@ export const CONFIG = {
     arrowSpacingRadii: 7,     // oklar arası mesafe (yarıçap katı)
     alwaysOnTop: true,        // hedef pini/halkası binaların arkasında da tam görünsün
     occludedOpacity: 0.28,    // tüpün bina arkasında kalan kısmının soluk opaklığı
-    radialSegments: 8,        // tüp kesit dilimi (10 yerine; kuşbakışında yetiyor)
-    maxTubularSegments: 360,
   },
 
   markers: {
@@ -109,7 +81,6 @@ export const CONFIG = {
     bounceAmp: 0.18,          // zıplama genliği (pin boyu katı)
     bounceSpeed: 2.4,         // zıplama hızı (rad/sn)
     occludedOpacity: 0.3,     // pinin bina arkasında kalan kısmının soluk opaklığı
-    bounceWhenIdle: false,    // boşta zıplatma (idle FPS + sakin kiosk)
   },
 
   // Gece/Gündüz ortam ayarları (geçiş yumuşak yapılır)
@@ -131,11 +102,9 @@ export const CONFIG = {
     height: null,            // null = sahne ölçeğinden otomatik hesapla
     color: 0xffd9a0,         // sıcak sodyum ışığı
     intensity: 14,           // PointLight şiddeti (gece)
-    distanceFactor: 10,      // ışık menzili = lamba boyu * bu katsayı
-    maxRealLights: 4,        // tavan; cihaz profili (desktop 4 / mobile 2) bunu daha da kısar
-    assignIntervalSec: 0.28, // gerçek ışıkları kameraya en yakın lambalara yeniden bağlama
+    distanceFactor: 9,       // ışık menzili = lamba boyu * bu katsayı
+    maxRealLights: 24,       // bu sayıdan sonrası gerçek ışık yerine güçlü sahte havuz alır (performans)
     poolRadiusFactor: 2.6,   // sahte ışık havuzu yarıçapı = lamba boyu * bu katsayı
-    poolSegments: 16,
     transitionSec: 1.0,
   },
 
