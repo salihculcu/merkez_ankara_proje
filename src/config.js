@@ -19,18 +19,23 @@ export const CONFIG = {
     // Draco wasm/js: lib/jsm/libs/draco/gltf/ (DRACOLoader DRACO_GLTF_CONFIG)
   },
 
-  // Performans profilleri: render çözünürlüğü, antialias ve gerçek lamba ışığı sayısı
+  // Performans: görünümü bozmadan ışık sayısı ve boşta kare tavanı.
+  // antialias / piksel oranı / PBR / ortam renkleri masaüstünde olduğu gibi kalır.
   perf: {
-    desktop: { maxPixelRatio: 2,   antialias: true,  maxRealLights: null }, // null = lamps.maxRealLights
-    mobile:  { maxPixelRatio: 1.5, antialias: false, maxRealLights: 6, maxTextureSize: 1024 },
-    // Uyarlanabilir çözünürlük: kare süresi eşiği aşarsa render ölçeği kademeli düşürülür
+    desktop: { maxPixelRatio: 2,   antialias: true,  maxRealLights: 4 },
+    mobile:  { maxPixelRatio: 1.5, antialias: false, maxRealLights: 2, maxTextureSize: 1024, routeGhosts: false },
     adaptive: {
       enabled: true,
-      intervalSec: 2.5,   // değerlendirme aralığı
-      slowMs: 40,         // ort. kare bu eşiği aşarsa ölçek düşür (≈25 fps altı)
-      fastMs: 26,         // ort. kare bunun altındaysa ölçek geri yükselt
-      minScale: 0.7,      // taban pixelRatio'nun altına inilmeyecek oran
-      step: 0.85,         // her adımda çarpan
+      intervalSec: 2.5,
+      slowMs: 40,
+      fastMs: 26,
+      minScale: 0.7,
+      step: 0.85,
+    },
+    idle: {
+      desktopFps: 0,   // 0 = tavan yok (144 Hz ekran olduğu gibi)
+      mobileFps: 30,
+      settleMs: 450,
     },
   },
 
@@ -103,7 +108,8 @@ export const CONFIG = {
     color: 0xffd9a0,         // sıcak sodyum ışığı
     intensity: 14,           // PointLight şiddeti (gece)
     distanceFactor: 9,       // ışık menzili = lamba boyu * bu katsayı
-    maxRealLights: 24,       // bu sayıdan sonrası gerçek ışık yerine güçlü sahte havuz alır (performans)
+    maxRealLights: 4,        // tavan; cihaz profili (4 / 2) bunu kullanır
+    assignIntervalSec: 0.28, // gerçek ışıkları kameraya en yakın lambalara bağla
     poolRadiusFactor: 2.6,   // sahte ışık havuzu yarıçapı = lamba boyu * bu katsayı
     transitionSec: 1.0,
   },

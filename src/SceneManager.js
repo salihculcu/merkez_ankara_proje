@@ -25,15 +25,19 @@ export class SceneManager {
     this.sceneScale = 1;
     this.floorY = 0;
     this.modelRoot = null;
+    this.cameraBusy = false;
 
     this.#updaters = new Set();
     this.#raycaster = new THREE.Raycaster();
     this.#pointerNdc = new THREE.Vector2();
+    this.#colA = new THREE.Color();
+    this.#colB = new THREE.Color();
   }
 
   #updaters; #raycaster; #pointerNdc; #hitboxMaterial;
   #basePixelRatio = 1; #resScale = 1; #frameAvgMs = 16.7; #adaptTimer = 0;
   #fpsEl = null; #fpsFrames = 0; #fpsTime = 0;
+  #lastActivity = 0; #hidden = false; #colA; #colB;
 
   async init({ storeIds = [], onProgress = null } = {}) {
     const { config } = this;
@@ -44,6 +48,7 @@ export class SceneManager {
       antialias: this.perfProfile.antialias,
       powerPreference: 'high-performance',
       stencil: false,
+      alpha: false,
     });
     this.#basePixelRatio = Math.min(window.devicePixelRatio, this.perfProfile.maxPixelRatio);
     this.renderer.setPixelRatio(this.#basePixelRatio);
@@ -91,8 +96,22 @@ export class SceneManager {
     await this.#loadModel(storeIds, onProgress);
     this.#buildGround();
     this.#fitControlsToBounds();
+    this.pokeActivity();
 
     return this;
+  }
+
+  /** Son dokunma / kamera hareketi — boşta kare tavanını geciktirir. */
+  pokeActivity() {
+    if (this.isIdle) this.#frameAvgMs = Math.min(this.#frameAvgMs, 18);
+    this.#lastActivity = performance.now();
+  }
+
+  get isIdle() {
+    if (this.cameraBusy) return false;
+    if (this.#nightMix !== this.#nightTarget) return false;
+    const settle = this.config.perf.idle?.settleMs ?? 450;
+    return performance.now() - this.#lastActivity > settle;
   }
 
   async #loadModel(storeIds, onProgress) {
@@ -157,8 +176,17 @@ export class SceneManager {
         obj.visible = false; // raycast yine çalışır; çizim maliyeti sıfırlanır
         this.hitboxes.push(obj);
       } else {
+        obj.castShadow = false;
+        obj.receiveShadow = false;
         this.walkableMeshes.push(obj);
       }
+    });
+
+    // Statik model: her kare matrix yeniden hesaplanmaz (görünüm aynı)
+    this.modelRoot.updateMatrixWorld(true);
+    this.modelRoot.traverse((obj) => {
+      obj.matrixAutoUpdate = false;
+      obj.matrixWorldAutoUpdate = false;
     });
 
     console.groupCollapsed('[SceneManager] GLB nesne dökümü');
@@ -207,14 +235,17 @@ export class SceneManager {
   // hem görsel bütünlük hem editörde "boşluğa" node koyabilmek için büyük bir taban diski eklenir.
   #buildGround() {
     const radius = this.sceneScale * 1.2;
-    const geo = new THREE.CircleGeometry(radius, 64);
+    const geo = new THREE.CircleGeometry(radius, 32);
     geo.rotateX(-Math.PI / 2);
-    // Marka paletine uygun sıcak nötr taban; gece modunda ışıkla birlikte doğal kararır
-    const mat = new THREE.MeshStandardMaterial({ color: 0x8f887c, roughness: 0.95, metalness: 0 });
+    // Görünmez: editör/raycast için durur, kahverengi disk sahneyi dolaşmaz.
+    // Arka plan rengi config.dayNight.day.bg olarak kalır.
+    const mat = new THREE.MeshBasicMaterial({ visible: false });
     const ground = new THREE.Mesh(geo, mat);
     const center = this.bounds.getCenter(new THREE.Vector3());
     ground.position.set(center.x, this.floorY - 0.02, center.z);
     ground.name = 'GROUND_DISC';
+    ground.matrixAutoUpdate = false;
+    ground.updateMatrix();
     this.scene.add(ground);
     this.groundMesh = ground;
     this.walkableMeshes.push(ground);
@@ -244,6 +275,7 @@ export class SceneManager {
   /** Ortam ışıklarını gece/gündüz durumuna yumuşak geçişle taşır. */
   setNight(night) {
     this.#nightTarget = night ? 1 : 0;
+    this.pokeActivity();
   }
 
   get isNight() { return this.#nightTarget === 1; }
@@ -259,11 +291,11 @@ export class SceneManager {
     const mix = this.#nightMix;
     const lerp = (a, b) => a + (b - a) * mix;
 
-    this.scene.background.lerpColors(new THREE.Color(day.bg), new THREE.Color(night.bg), mix);
-    this.hemiLight.color.lerpColors(new THREE.Color(day.hemiSky), new THREE.Color(night.hemiSky), mix);
-    this.hemiLight.groundColor.lerpColors(new THREE.Color(day.hemiGround), new THREE.Color(night.hemiGround), mix);
+    this.scene.background.lerpColors(this.#colA.set(day.bg), this.#colB.set(night.bg), mix);
+    this.hemiLight.color.lerpColors(this.#colA.set(day.hemiSky), this.#colB.set(night.hemiSky), mix);
+    this.hemiLight.groundColor.lerpColors(this.#colA.set(day.hemiGround), this.#colB.set(night.hemiGround), mix);
     this.hemiLight.intensity = lerp(day.hemi, night.hemi);
-    this.dirLight.color.lerpColors(new THREE.Color(day.dirColor), new THREE.Color(night.dirColor), mix);
+    this.dirLight.color.lerpColors(this.#colA.set(day.dirColor), this.#colB.set(night.dirColor), mix);
     this.dirLight.intensity = lerp(day.dir, night.dir);
     this.scene.environmentIntensity = lerp(day.env, night.env);
     this.renderer.toneMappingExposure = lerp(day.exposure, night.exposure);
@@ -311,6 +343,7 @@ export class SceneManager {
   setTopView(on) {
     if (on === this.topViewActive) return;
     this.topViewActive = on;
+    this.pokeActivity();
     const cam = this.camera;
     const c = this.controls;
 
@@ -368,13 +401,42 @@ export class SceneManager {
       document.body.appendChild(this.#fpsEl);
     }
 
+    this.pokeActivity();
+    const poke = () => this.pokeActivity();
+    window.addEventListener('pointerdown', poke, { passive: true });
+    window.addEventListener('keydown', poke);
+    this.canvas.addEventListener('wheel', poke, { passive: true });
+    this.controls.addEventListener('start', poke);
+    this.controls.addEventListener('change', poke);
+
+    document.addEventListener('visibilitychange', () => {
+      this.#hidden = document.hidden;
+      if (this.#hidden) this.renderer.setAnimationLoop(null);
+      else {
+        this.pokeActivity();
+        this.#runLoop();
+      }
+    });
+
+    this.#runLoop();
+  }
+
+  #runLoop() {
     let last = performance.now();
     let elapsed = 0;
+    let lastRender = 0;
     this.renderer.setAnimationLoop(() => {
       const now = performance.now();
+      const idleCfg = this.config.perf.idle ?? {};
+      const cap = this.isIdle
+        ? (IS_MOBILE ? (idleCfg.mobileFps ?? 30) : (idleCfg.desktopFps ?? 0))
+        : 0;
+      if (cap > 0 && now - lastRender < (1000 / cap) - 0.75) return;
+
       const dtMs = now - last;
       const dt = Math.min(dtMs / 1000, 0.1);
       last = now;
+      lastRender = now;
       elapsed += dt;
       this.#adaptResolution(dtMs, dt);
       this.#updateFpsCounter(dtMs);
@@ -408,6 +470,10 @@ export class SceneManager {
   #adaptResolution(dtMs, dt) {
     const cfg = this.config.perf.adaptive;
     if (!cfg.enabled) return;
+    if (this.isIdle) {
+      this.#adaptTimer = 0;
+      return;
+    }
 
     // Üstel hareketli ortalama; sekme geri planından dönüşteki dev kareleri yok say
     if (dtMs < 500) this.#frameAvgMs += (dtMs - this.#frameAvgMs) * 0.05;

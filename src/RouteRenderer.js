@@ -54,7 +54,10 @@ export class RouteRenderer {
     });
     const baseTube = new THREE.Mesh(baseGeo, baseMat);
     baseTube.renderOrder = 50;
-    this.group.add(baseTube, this.#ghostOf(baseTube, cfg.occludedOpacity));
+    this.group.add(baseTube);
+    if (this.sceneManager.perfProfile.routeGhosts !== false) {
+      this.group.add(this.#ghostOf(baseTube, cfg.occludedOpacity));
+    }
     this.#disposables.push(baseGeo, baseMat);
 
     // Akış okları
@@ -71,11 +74,15 @@ export class RouteRenderer {
     });
     const arrowTube = new THREE.Mesh(arrowGeo, arrowMat);
     arrowTube.renderOrder = 51;
-    this.group.add(arrowTube, this.#ghostOf(arrowTube, cfg.occludedOpacity));
+    this.group.add(arrowTube);
+    if (this.sceneManager.perfProfile.routeGhosts !== false) {
+      this.group.add(this.#ghostOf(arrowTube, cfg.occludedOpacity));
+    }
     this.#disposables.push(arrowGeo, arrowMat, arrowMat.map);
     this.#arrowMaterial = arrowMat;
 
     this.#buildDestinationMarker(lifted[lifted.length - 1], radius);
+    this.sceneManager.pokeActivity();
   }
 
   /**
