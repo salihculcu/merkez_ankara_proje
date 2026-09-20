@@ -58,7 +58,11 @@ async function boot() {
   sceneManager.start();
 
   // Sahada performans ayıklama için konsol kancası (ör. __ma.renderer.info.render)
-  window.__ma = { sceneManager, renderer: sceneManager.renderer };
+  window.__ma = {
+    sceneManager,
+    renderer: sceneManager.renderer,
+    info: () => sceneManager.renderer.info,
+  };
 
   if (isEditorMode) {
     const { GraphEditor } = await import('./editor/GraphEditor.js');

@@ -41,10 +41,16 @@ export class RouteRenderer {
 
     const curve = new THREE.CatmullRomCurve3(lifted, false, 'centripetal', 0.5);
     const length = curve.getLength();
-    const tubularSegments = THREE.MathUtils.clamp(Math.round(length / (radius * 0.5)), 32, 800);
+    const profile = this.sceneManager.perfProfile;
+    const radial = cfg.radialSegments ?? 8;
+    const maxTubular = profile.routeGhosts === false
+      ? Math.min(180, cfg.maxTubularSegments ?? 360)
+      : (cfg.maxTubularSegments ?? 360);
+    const tubularSegments = THREE.MathUtils.clamp(Math.round(length / (radius * 0.55)), 24, maxTubular);
+    const useGhosts = profile.routeGhosts !== false;
 
     // Taban tüp: görünen kısım normal, bina arkasında kalan kısım soluk hayalet geçişiyle
-    const baseGeo = new THREE.TubeGeometry(curve, tubularSegments, radius, 10, false);
+    const baseGeo = new THREE.TubeGeometry(curve, tubularSegments, radius, radial, false);
     const baseMat = new THREE.MeshBasicMaterial({
       color: cfg.baseColor,
       transparent: true,
@@ -54,11 +60,12 @@ export class RouteRenderer {
     });
     const baseTube = new THREE.Mesh(baseGeo, baseMat);
     baseTube.renderOrder = 50;
-    this.group.add(baseTube, this.#ghostOf(baseTube, cfg.occludedOpacity));
+    this.group.add(baseTube);
+    if (useGhosts) this.group.add(this.#ghostOf(baseTube, cfg.occludedOpacity));
     this.#disposables.push(baseGeo, baseMat);
 
     // Akış okları
-    const arrowGeo = new THREE.TubeGeometry(curve, tubularSegments, radius * 1.06, 10, false);
+    const arrowGeo = new THREE.TubeGeometry(curve, tubularSegments, radius * 1.06, radial, false);
     const arrowCount = Math.max(2, Math.round(length / (radius * cfg.arrowSpacingRadii)));
     const arrowMap = this.#arrowTexture.clone();
     arrowMap.repeat.set(arrowCount, 1);
@@ -71,11 +78,13 @@ export class RouteRenderer {
     });
     const arrowTube = new THREE.Mesh(arrowGeo, arrowMat);
     arrowTube.renderOrder = 51;
-    this.group.add(arrowTube, this.#ghostOf(arrowTube, cfg.occludedOpacity));
+    this.group.add(arrowTube);
+    if (useGhosts) this.group.add(this.#ghostOf(arrowTube, cfg.occludedOpacity));
     this.#disposables.push(arrowGeo, arrowMat, arrowMat.map);
     this.#arrowMaterial = arrowMat;
 
     this.#buildDestinationMarker(lifted[lifted.length - 1], radius);
+    this.sceneManager.pokeActivity();
   }
 
   /**
@@ -101,7 +110,7 @@ export class RouteRenderer {
     const color = this.config.markers.destColor;
     const s = radius * 3.2;
 
-    const ringGeo = new THREE.RingGeometry(s * 0.55, s, 48);
+    const ringGeo = new THREE.RingGeometry(s * 0.55, s, 24);
     ringGeo.rotateX(-Math.PI / 2);
     const ringMat = new THREE.MeshBasicMaterial({
       color, transparent: true, opacity: 0.9, side: THREE.DoubleSide,
@@ -116,14 +125,14 @@ export class RouteRenderer {
 
     // Baş aşağı koni + üstünde küre: klasik harita pini
     const pin = new THREE.Group();
-    const coneGeo = new THREE.ConeGeometry(s * 0.42, s * 1.5, 20);
+    const coneGeo = new THREE.ConeGeometry(s * 0.42, s * 1.5, 12);
     coneGeo.rotateX(Math.PI);
     coneGeo.translate(0, s * 0.75, 0);
     const pinMat = new THREE.MeshBasicMaterial({
       color, depthWrite: false, depthTest: !this.config.route.alwaysOnTop,
     });
     const cone = new THREE.Mesh(coneGeo, pinMat);
-    const headGeo = new THREE.SphereGeometry(s * 0.4, 20, 16);
+    const headGeo = new THREE.SphereGeometry(s * 0.4, 12, 10);
     headGeo.translate(0, s * 1.65, 0);
     const head = new THREE.Mesh(headGeo, pinMat);
     pin.add(cone, head);
@@ -149,11 +158,11 @@ export class RouteRenderer {
     const group = new THREE.Group();
     group.name = 'START_MARKER';
 
-    const dotGeo = new THREE.CylinderGeometry(s * 0.35, s * 0.35, radius * 0.6, 24);
+    const dotGeo = new THREE.CylinderGeometry(s * 0.35, s * 0.35, radius * 0.6, 16);
     const dotMat = new THREE.MeshBasicMaterial({ color, depthWrite: false });
     const dot = new THREE.Mesh(dotGeo, dotMat);
 
-    const ringGeo = new THREE.RingGeometry(s * 0.6, s * 0.78, 48);
+    const ringGeo = new THREE.RingGeometry(s * 0.6, s * 0.78, 24);
     ringGeo.rotateX(-Math.PI / 2);
     const ringMat = new THREE.MeshBasicMaterial({
       color, transparent: true, opacity: 0.8, side: THREE.DoubleSide, depthWrite: false,
@@ -225,7 +234,7 @@ export class RouteRenderer {
     tex.colorSpace = THREE.SRGBColorSpace;
     tex.wrapS = THREE.RepeatWrapping;
     tex.wrapT = THREE.ClampToEdgeWrapping;
-    tex.anisotropy = 4;
+    tex.anisotropy = 1;
     return tex;
   }
 }
