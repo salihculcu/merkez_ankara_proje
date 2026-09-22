@@ -103,12 +103,12 @@ export const CONFIG = {
     },
   },
 
-  // Hitbox tespiti: nesne adı bu önekle başlıyorsa (HITBOX_ZARA) veya
-  // adı stores.json içindeki bir mağaza kimliğiyle eşleşiyorsa (zara -> ZARA) hitbox sayılır.
+  // Hitbox: mesh veya parent adı HITBOX_ / STORE_ ile başlıyorsa (HITBOXK_ yazım hatası da).
   hitbox: {
     prefix: 'HITBOX_',
+    prefixes: ['HITBOXK_', 'HITBOX_', 'STORE_'],
     debugColor: 0x34d399,
-    debugOpacity: 0.18,
+    debugOpacity: 0.32,
   },
 
   graph: {

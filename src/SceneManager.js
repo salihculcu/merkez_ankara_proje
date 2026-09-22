@@ -35,7 +35,7 @@ export class SceneManager {
     this.#colB = new THREE.Color();
   }
 
-  #updaters; #raycaster; #pointerNdc; #hitboxMaterial;
+  #updaters; #raycaster; #pointerNdc; #hitboxMaterial; #hitboxOverlays = [];
   #basePixelRatio = 1; #resScale = 1; #frameAvgMs = 16.7; #adaptTimer = 0;
   #fpsEl = null; #fpsFrames = 0; #fpsTime = 0;
   #lastActivity = 0; #hidden = false; #colA; #colB;
@@ -149,38 +149,52 @@ export class SceneManager {
     this.scene.add(this.modelRoot);
 
     const storeIdSet = new Set(storeIds.map((s) => s.toUpperCase()));
-    const prefix = this.config.hitbox.prefix.toUpperCase();
 
     this.#hitboxMaterial = new THREE.MeshBasicMaterial({
       color: this.config.hitbox.debugColor,
       transparent: true,
       opacity: 0,
       depthWrite: false,
+      depthTest: false, // çatı/duvar hitbox'ı örtmesin (Blender outline gibi)
       side: THREE.DoubleSide,
     });
 
     const nameDump = [];
+    const meshes = [];
     this.modelRoot.traverse((obj) => {
-      if (!obj.isMesh) return;
+      if (obj.isMesh) meshes.push(obj);
+    });
 
-      const upper = obj.name.toUpperCase();
-      let storeId = null;
-      if (upper.startsWith(prefix)) storeId = upper.slice(prefix.length);
-      else if (storeIdSet.has(upper)) storeId = upper;
-
-      nameDump.push({ name: obj.name, tur: storeId ? `HITBOX (${storeId})` : 'model', ucgen: (obj.geometry.index?.count ?? 0) / 3 });
+    for (const obj of meshes) {
+      if (obj.userData.skipHitbox) continue;
+      const storeId = this.#resolveStoreId(obj, storeIdSet);
+      nameDump.push({
+        name: `${obj.name}${obj.parent?.name ? ` ← ${obj.parent.name}` : ''}`,
+        tur: storeId ? `HITBOX (${storeId})` : 'model',
+        ucgen: (obj.geometry.index?.count ?? 0) / 3,
+      });
 
       if (storeId) {
+        // Çatı malzemesi durur; tıklama bu mesh'ten, yeşil sadece ayrı overlay.
         obj.userData.storeId = storeId;
-        obj.material = this.#hitboxMaterial;
-        obj.visible = false; // raycast yine çalışır; çizim maliyeti sıfırlanır
+        obj.castShadow = false;
+        obj.receiveShadow = false;
         this.hitboxes.push(obj);
+
+        const overlay = new THREE.Mesh(obj.geometry, this.#hitboxMaterial);
+        overlay.name = 'debug_overlay';
+        overlay.userData.skipHitbox = true;
+        overlay.raycast = () => {};
+        overlay.visible = false;
+        overlay.renderOrder = 40;
+        obj.add(overlay);
+        this.#hitboxOverlays.push(overlay);
       } else {
         obj.castShadow = false;
         obj.receiveShadow = false;
         this.walkableMeshes.push(obj);
       }
-    });
+    }
 
     if (this.perfProfile.maxTextureSize) {
       this.#downscaleTextures(this.modelRoot, this.perfProfile.maxTextureSize);
@@ -202,6 +216,38 @@ export class SceneManager {
     this.bounds.setFromObject(this.modelRoot);
     this.sceneScale = this.bounds.getSize(new THREE.Vector3()).length();
     this.floorY = this.bounds.min.y;
+  }
+
+  /**
+   * Mesh veya parent adı: HITBOX_MANGO / HITBOX_MANGO.001 / STORE_Mango → MANGO.
+   */
+  #resolveStoreId(mesh, storeIdSet) {
+    if (mesh.userData?.skipHitbox) return null;
+    const prefixes = (this.config.hitbox.prefixes ?? [this.config.hitbox.prefix])
+      .map((p) => p.toUpperCase())
+      .sort((a, b) => b.length - a.length);
+
+    const fromName = (raw) => {
+      if (!raw) return null;
+      const upper = raw.toUpperCase().replace(/\.\d+$/, '');
+      for (const prefix of prefixes) {
+        if (upper.startsWith(prefix) && upper.length > prefix.length) return upper.slice(prefix.length);
+      }
+      return storeIdSet.has(upper) ? upper : null;
+    };
+
+    let found = fromName(mesh.name);
+    if (found) return found;
+    let node = mesh.parent;
+    let guard = 0;
+    while (node && node !== this.modelRoot && guard < 32) {
+      if (node.userData?.skipHitbox) break;
+      found = fromName(node.name);
+      if (found) return found;
+      node = node.parent;
+      guard += 1;
+    }
+    return null;
   }
 
   /**
@@ -322,7 +368,8 @@ export class SceneManager {
 
   setHitboxDebug(visible) {
     this.#hitboxMaterial.opacity = visible ? this.config.hitbox.debugOpacity : 0;
-    for (const h of this.hitboxes) h.visible = visible;
+    this.#hitboxMaterial.needsUpdate = true;
+    for (const overlay of this.#hitboxOverlays) overlay.visible = visible;
   }
 
   // ---------- Gece / Gündüz ----------

@@ -1,5 +1,8 @@
 {
   "ZARA": { "name": "Zara", "category": "Giyim", "floor": 1 },
   "BOYNER": { "name": "Boyner", "category": "Giyim", "floor": 1 },
-  "BIGCHEFS": { "name": "Big Chefs", "category": "Yeme & İçme", "floor": 1 }
+  "BIGCHEFS": { "name": "Big Chefs", "category": "Yeme & İçme", "floor": 1 },
+  "MANGO": { "name": "Mango", "category": "Giyim", "floor": 1 },
+  "ROASTNBERRY": { "name": "Roast n Berry", "category": "Yeme & İçme", "floor": 1 },
+  "KIKAKITAPKAFE": { "name": "Kika Kitap Kafe", "category": "Yeme & İçme", "floor": 1 }
 }
