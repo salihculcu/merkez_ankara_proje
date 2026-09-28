@@ -188,6 +188,7 @@ export const CONFIG = {
     maxZoomOutFactor: 1.0,    // home mesafesinin ötesine zoom-out yok
     frameMs: 1400,
     homeMs: 1600,
+    floorMs: 1700,            // kat 1 ↔ kat -1 kamera iniş/çıkış
   },
 
   idle: {

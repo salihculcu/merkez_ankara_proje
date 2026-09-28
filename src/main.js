@@ -54,6 +54,7 @@ async function boot() {
   const lampSystem = new LampSystem(sceneManager, CONFIG);
   const storeMarkers = new StoreMarkers(sceneManager, CONFIG);
   wireDayNightToggle(sceneManager, lampSystem);
+  wireFloorToggle(camera);
 
   sceneManager.start();
 
@@ -150,6 +151,24 @@ function wireEditorLink() {
 }
 
 // Gece/Gündüz düğmesi hem kiosk hem editör modunda çalışır.
+function wireFloorToggle(camera) {
+  const btn = document.getElementById('floor-toggle');
+  const label = document.getElementById('floor-label');
+  if (!btn) return;
+  btn.addEventListener('click', () => {
+    const next = camera.activeFloor === -1 ? 1 : -1;
+    camera.goToFloor(next);
+    const onBasement = next === -1;
+    btn.textContent = onBasement ? 'Kat 1' : 'Kat -1';
+    btn.setAttribute('aria-pressed', String(onBasement));
+    if (label) {
+      label.textContent = onBasement
+        ? 'Kat -1 — deneme'
+        : 'Kat 1 — Etkileşimli Yönlendirme';
+    }
+  });
+}
+
 function wireDayNightToggle(sceneManager, lampSystem) {
   const btn = document.getElementById('daynight-toggle');
   const label = document.getElementById('daynight-label');

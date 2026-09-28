@@ -216,6 +216,25 @@ export class SceneManager {
     this.bounds.setFromObject(this.modelRoot);
     this.sceneScale = this.bounds.getSize(new THREE.Vector3()).length();
     this.floorY = this.bounds.min.y;
+    this.#stackBasementPreview();
+  }
+
+  /**
+   * Geçici: aynı GLB, bir kat yüksekliğinde aşağıda. Gerçek kat -1 modeli gelince değişir.
+   * Tıklama listesine girmez; sadece kamera inişini görmek için.
+   */
+  #stackBasementPreview() {
+    const size = this.bounds.getSize(new THREE.Vector3());
+    const drop = Math.max(size.y * 1.6, Math.max(size.x, size.z) * 0.22);
+    this.floorDrop = drop;
+
+    const basement = this.modelRoot.clone(true);
+    basement.name = 'FLOOR_-1';
+    basement.position.y = -drop;
+    basement.updateMatrix();
+    basement.updateMatrixWorld(true);
+    this.scene.add(basement);
+    this.basementRoot = basement;
   }
 
   /**
@@ -362,7 +381,7 @@ export class SceneManager {
     // Asıl tavan CameraDirector.setHomeFromBounds'ta home mesafesine çekilir
     this.controls.maxDistance = this.sceneScale * 1.0;
     this.camera.near = Math.max(0.01, this.sceneScale * 0.001);
-    this.camera.far = this.sceneScale * 12;
+    this.camera.far = this.sceneScale * 12 + (this.floorDrop || 0) * 4;
     this.camera.updateProjectionMatrix();
   }
 

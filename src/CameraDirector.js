@@ -21,6 +21,8 @@ export class CameraDirector {
   }
 
   #home; #tween;
+  activeFloor = 1;
+  #floorYOffset = 0;
 
   /** Model yüklendikten sonra çağrılır: home görünümünü hesaplar ve anında uygular. */
   setHomeFromBounds(bounds) {
@@ -78,10 +80,35 @@ export class CameraDirector {
     this.#startTween(position, center, cam.frameMs);
   }
 
+  /**
+   * Kamerayı aynı açıda bir kat aşağı/yukarı taşır.
+   * floor: 1 veya -1. Şimdilik -1, kopya modelin floorDrop kadar altıdır.
+   */
+  goToFloor(floor) {
+    const next = floor === -1 ? -1 : 1;
+    if (next === this.activeFloor || !this.#home) return;
+    const drop = this.sceneManager.floorDrop || 0;
+    const nextOffset = next === -1 ? -drop : 0;
+    const delta = nextOffset - this.#floorYOffset;
+    this.#floorYOffset = nextOffset;
+    this.activeFloor = next;
+
+    const { camera, controls } = this.sceneManager;
+    const position = camera.position.clone();
+    const target = controls.target.clone();
+    position.y += delta;
+    target.y += delta;
+    this.#startTween(position, target, this.config.camera.floorMs ?? 1700);
+  }
+
   goHome(instant = false) {
     if (!this.#home) return;
 
     let { position, target } = this.#home;
+    position = position.clone();
+    target = target.clone();
+    position.y += this.#floorYOffset;
+    target.y += this.#floorYOffset;
     if (this.sceneManager.topViewActive) {
       const distance = position.clone().sub(target).length();
       position = new THREE.Vector3(target.x, target.y + distance, target.z + distance * 0.001);
