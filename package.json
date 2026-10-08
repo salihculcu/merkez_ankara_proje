@@ -7,21 +7,22 @@
     "lib": "lib"
   },
   "scripts": {
+    "test:perf": "node --import ./tests/register-three.mjs --test tests/performance.test.mjs",
     "build:www": "node build-www.mjs",
     "android:sync": "npm run build:www && cap sync android",
     "android:open": "cap open android"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/FatihAkpiyall/MERKEZ_ANKARA.git"
+    "url": "git+https://github.com/salihculcu/merkez_ankara_proje.git"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/FatihAkpiyall/MERKEZ_ANKARA/issues"
+    "url": "https://github.com/salihculcu/merkez_ankara_proje/issues"
   },
-  "homepage": "https://github.com/FatihAkpiyall/MERKEZ_ANKARA#readme",
+  "homepage": "https://github.com/salihculcu/merkez_ankara_proje#readme",
   "dependencies": {
     "@capacitor/android": "^8.5.1",
     "@capacitor/cli": "^8.5.1",

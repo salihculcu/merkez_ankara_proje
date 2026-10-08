@@ -1,3 +1,4 @@
+import { t } from './I18n.js';
 // Cihaz sınıfı: telefon/tablet tespiti.
 // `?mobile` ile hafif profil, `?quality` ile tam kalite zorlanır.
 export const IS_MOBILE = (() => {
@@ -48,9 +49,10 @@ export function resolvePerfProfile(config, { gpuRenderer = '' } = {}) {
 // Uygulama genel ayarları — sahne ölçeğine ve kiosk donanımına göre buradan kalibre edilir.
 export const CONFIG = {
   paths: {
-    model: './assets/models/MERKEZ_ANKARA_KAT_1_DENEME.glb',
-    // Telefon/tablet: düşürülmüş üçgen sayısı + 1024px dokular (yoksa otomatik ana modele düşer)
-    modelMobile: './assets/models/MERKEZ_ANKARA_KAT_1_DENEME_mobile.glb',
+    model: './assets/models/MERKEZ_ANKARA_WEB_UPDATED.glb?v=20261007-1723',
+    modelFallback: './assets/models/MERKEZ_ANKARA_WEB_OPTIMIZED.glb?v=20261007',
+    // Aynı hafif geometri; tablet profili dokuları ayrıca cihaz sınırına indirir.
+    modelMobile: './assets/models/MERKEZ_ANKARA_WEB_UPDATED.glb?v=20261007-1723',
     graph: './assets/data/graph.json',
     stores: './assets/data/stores.json',
     // Draco wasm/js: lib/jsm/libs/draco/gltf/ (DRACOLoader DRACO_GLTF_CONFIG)
@@ -98,17 +100,23 @@ export const CONFIG = {
     },
     idle: {
       desktopFps: 0,
-      mobileFps: 30,
+      mobileFps: 0, // No automatic idle throttle; user FPS limit still applies.
       settleMs: 450,
     },
   },
 
-  // Hitbox: mesh veya parent adı HITBOX_ / STORE_ ile başlıyorsa (HITBOXK_ yazım hatası da).
+  // Hitbox: Blender mesh adı veya nesne adı HITBOX_ / STORE_ ile başlıyorsa
+  // (HITBOXK_ yazım hatası da). glTF'de mesh adı ile nesne adı ayrıdır; ikisi de okunur.
   hitbox: {
     prefix: 'HITBOX_',
     prefixes: ['HITBOXK_', 'HITBOX_', 'STORE_'],
     debugColor: 0x34d399,
     debugOpacity: 0.32,
+  },
+
+  // Açık hava kiosk nesnesi. Graf düğümü buraya yazılır; kamera modeli serbest dolaşır.
+  kioskAnchor: {
+    names: ['KIOSK_OUTDOOR', 'KİOSK_OUTDOOR'],
   },
 
   graph: {
@@ -127,12 +135,15 @@ export const CONFIG = {
     yOffset: 0.12,            // zeminden yükseklik (sahne birimi)
     radiusFactor: 0.0032,     // tüp yarıçapı = sahne çapraz uzunluğu * bu katsayı
     minRadius: 0.05,
-    baseColor: 0xe08035,      // bakır/terrakota — marka paletiyle uyumlu sıcak vurgu
-    baseOpacity: 0.92,
-    flowSpeed: 1.4,           // ok akış hızı (uv/sn)
-    arrowSpacingRadii: 7,     // oklar arası mesafe (yarıçap katı)
+    baseColor: 0x2563eb,      // yerdeki ince iz
+    arrowColor: 0x7ec8ff,     // ilerleyen oklar
+    baseOpacity: 0.5,
+    flowSpeed: 0.22,          // okların yol boyunca tur/sn
+    arrowPulse: 3.4,          // yanıp sönme hızı
+    arrowSpacingRadii: 22,    // oklar arası mesafe (yarıçap katı)
+    arrowScale: 3.5,          // ok boyu = yarıçap * bu
     alwaysOnTop: true,        // hedef pini/halkası binaların arkasında da tam görünsün
-    occludedOpacity: 0.28,    // tüpün bina arkasında kalan kısmının soluk opaklığı
+    occludedOpacity: 0.28,    // bina arkasında kalan kısmın soluk opaklığı
   },
 
   markers: {
@@ -181,11 +192,23 @@ export const CONFIG = {
   camera: {
     fov: 50,
     homePolarDeg: 50,         // kuşbakışına yakın açı (0 = tepeden)
-    homeAzimuthDeg: 35,
+    homeAzimuthDeg: 205,      // avlu cephesine bakış
     framePolarDeg: 45,
     fitPadding: 1.28,         // rota kadrajlama payı
-    homePadding: 0.72,        // başlangıç görünümü payı (küçük = daha yakın; tüm kroki bu mesafeden dolar)
-    maxZoomOutFactor: 1.0,    // home mesafesinin ötesine zoom-out yok
+    homePadding: 0.49,        // açılışta avlu kadrajı
+    // Model merkezine göre: meydana ve zemin hizasına kaydır
+    homeTargetOffset: { x: -40, y: -41.3, z: -41 },
+    maxZoomOutFactor: 1.3,    // açılış kadrajının biraz ötesine uzaklaşılabilir
+    minDistanceFactor: 0.42,  // bu orandan fazla yaklaşılamaz
+    // Babylon sandbox ArcRotateCamera: bırakınca süzülür, tekerlek yüzdesel ve yumuşak.
+    // https://sandbox.babylonjs.com/?from=3dviewer
+    softOrbit: {
+      dampingFactor: 0.06,
+      rotateSpeed: 0.55,
+      panSpeed: 0.4,
+      zoomSpeed: 0.72,
+      zoomInertia: 0.9,
+    },
     frameMs: 1400,
     homeMs: 1600,
     floorMs: 1700,            // kat 1 ↔ kat -1 kamera iniş/çıkış
@@ -220,7 +243,7 @@ export const CONFIG = {
 };
 
 // Kiosk UI metinleri — çoklu dile hazırlık için tek noktada.
-export const STRINGS = {
+const BASE_STRINGS = {
   routeNotFound: 'Rota bulunamadı. Yol ağı bu mağazaya bağlı olmayabilir.',
   accessibleRouteNotFound: 'Engelsiz rota bulunamadı. Normal rota gösterilmeye devam ediyor.',
   graphEmpty: 'Yol ağı henüz tanımlanmamış. Editör modunda (?editor) rota noktalarını yerleştirin.',
@@ -239,3 +262,4 @@ export const STRINGS = {
   stepLeft: 'Sola dönün',
   stepArriveSuffix: 'mağazasına ulaştınız',
 };
+export const STRINGS = new Proxy(BASE_STRINGS, { get: (target, key) => typeof target[key] === 'string' ? t(target[key]) : target[key] });

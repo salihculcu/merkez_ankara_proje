@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Merkez Ankara — İstatistikler</title>
+  <link rel="icon" href="./assets/logo/merkez-ankara-logo.png">
+  <link rel="stylesheet" href="./styles/analytics.css?v=1">
+</head>
+<body>
+  <aside class="sidebar">
+    <a class="brand" href="./"><img src="./assets/logo/merkez-ankara-logo.png" alt=""><div><strong>MERKEZ ANKARA</strong><small>Yönetim paneli</small></div></a>
+    <p class="nav-label">Yönetim</p>
+    <nav aria-label="Yönetim"><button data-view="overview" class="active" aria-current="page"><span aria-hidden="true">◫</span> Genel bakış</button><button data-view="stores"><span aria-hidden="true">▣</span> Mağaza analizi</button><button data-view="engagement"><span aria-hidden="true">⌁</span> Etkileşim analizi</button><button data-view="reports"><span aria-hidden="true">▤</span> Raporlar</button></nav>
+    <div class="sidebar-bottom"><span class="demo-tag">DEMO VERİ</span><p>Sunum için hazırlanmış tutarlı örnek veriler.</p><a href="./" class="back-link">← <span>Haritaya dön</span></a></div>
+  </aside>
+  <main>
+    <header class="dashboard-top"><div><span class="eyebrow">MERKEZ ANKARA / <span>İstatistikler</span></span><h1 id="page-title">Genel bakış</h1></div><div class="header-actions"><select data-language-select aria-label="Dil"></select><span class="avatar" aria-hidden="true">MA</span></div></header>
+    <div class="demo-banner"><span class="status-dot"></span><span>Bu panel örnek verilerle hazırlanmıştır. Gerçek ziyaretçi ölçümü yapılmaz.</span></div>
+    <section class="hero" data-section="overview"><div><span class="eyebrow">MERKEZ ANKARA</span><h2>Ziyaretçi ilgisini anlayın.</h2><p>Aramadan rotaya, mağazalarınızın dijital görünürlüğü.</p><a href="./" class="hero-link">Haritaya dön <span aria-hidden="true">↗</span></a></div><div class="hero-image" role="img" aria-label="Merkez Ankara"></div></section>
+    <section class="filter-bar" aria-label="Filtreler">
+      <div><label for="period-filter">Dönem</label><select id="period-filter"><option value="7">Son 7 gün</option><option value="30" selected>Son 30 gün</option><option value="90">Son 90 gün</option></select></div>
+      <div><label for="store-filter">Mağaza</label><select id="store-filter"><option value="all">Tüm mağazalar</option></select></div>
+      <div><label for="kiosk-filter">Kiosk</label><select id="kiosk-filter"><option value="all">Tüm kiosklar</option></select></div>
+      <button id="reset-filters" class="subtle-btn" type="button" title="Filtreleri sıfırla">↺ <span>Filtreleri sıfırla</span></button>
+      <button id="export-report" class="primary-btn" type="button">↓ <span>Rapor indir</span></button>
+    </section>
+    <div class="period-line"><span id="period-caption"></span><span class="demo-tag">DEMO VERİ</span></div>
+    <div id="dashboard-content" aria-busy="true">
+      <section id="kpi-grid" class="kpi-grid" aria-label="Genel istatistikler"></section>
+      <section class="chart-grid" data-section="overview engagement"><article class="card trend-card"><div class="card-title"><div><span class="eyebrow">01 / <span>Etkileşim</span></span><h2>Günlük etkileşim</h2></div><div class="legend"><span><i></i><span>Aramalar</span></span><span><i class="secondary"></i><span>Rotalar</span></span></div></div><div id="daily-chart" class="daily-chart"></div><p class="chart-caption">İlgi, fiziksel ziyaret veya satış anlamına gelmez.</p></article><article class="card"><div class="card-title"><div><span class="eyebrow">02 / <span>İlgi</span></span><h2>En çok aranan mağazalar</h2></div></div><div id="search-ranking"></div></article></section>
+      <section class="detail-grid" data-section="overview engagement"><article class="card"><div class="card-title"><h2>Saatlik yoğunluk</h2><span class="muted">Rotalar</span></div><div id="hour-chart" class="hour-chart"></div></article><article class="card"><div class="card-title"><h2>Dil tercihleri</h2></div><div id="language-chart" class="language-chart"></div></article><article class="card"><div class="card-title"><h2>En çok rota alınan mağazalar</h2></div><div id="route-ranking"></div></article></section>
+      <section class="card table-card" data-section="overview stores"><div class="card-title"><div><span class="eyebrow">03 / <span>Mağazalar</span></span><h2>Mağaza performansı</h2></div><span class="muted"><span>Detayları göster</span> ↗</span></div><div class="table-scroll"><table><thead><tr><th>Mağaza</th><th>Kategori</th><th><button data-sort="searches"><span>Aramalar</span> ↕</button></th><th><button data-sort="routes"><span>Rotalar</span> ↕</button></th><th>Engelsiz rota</th><th>Dönüşüm</th><th>Kampanya tıklaması</th></tr></thead><tbody id="store-table"></tbody></table></div><p class="chart-caption">Rota oluşturma oranıdır; mağazaya varış ölçümü değildir.</p></section>
+      <section class="engagement-grid" data-section="engagement stores"><article class="card"><div class="card-title"><h2>Kampanyalar</h2></div><div id="campaign-metrics"></div></article><article class="card"><div class="card-title"><h2>Kiosk dağılımı</h2></div><div id="kiosk-breakdown"></div></article></section>
+      <section class="reports-grid" data-section="reports"><article class="card report-download"><span class="report-icon" aria-hidden="true">▤</span><h2>CSV raporu</h2><p>Seçili dönem ve mağaza filtreleri rapora uygulanır.</p><button id="export-report-secondary" class="primary-btn" type="button">Rapor indir</button></article><article class="card"><h2>Veri sözlüğü</h2><dl><dt>Arama sayısı</dt><dd>Mağaza aramaları, rota talepleri ve kampanya etkileşimleri.</dd><dt>Aramadan rotaya</dt><dd>Rota oluşturma oranıdır; mağazaya varış ölçümü değildir.</dd><dt>DEMO VERİ</dt><dd>Sunum için hazırlanmış tutarlı örnek veriler.</dd></dl></article></section>
+      <div id="empty-state" class="card empty-state" hidden>Filtrelere uygun veri bulunamadı.</div>
+    </div>
+    <footer><span>© MERKEZ ANKARA</span><span>İlgi, fiziksel ziyaret veya satış anlamına gelmez.</span></footer>
+    <div id="analytics-status" role="status" class="sr-only"></div>
+  </main>
+  <script type="module" src="./src/analytics/Dashboard.js?v=1"></script>
+</body>
+</html>
+

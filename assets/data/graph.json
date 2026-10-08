@@ -2,7 +2,7 @@
   "version": 1,
   "meta": {
     "building": "MERKEZ_ANKARA",
-    "exportedAt": "2026-09-22T13:24:01.850Z",
+    "exportedAt": "2026-10-07T14:53:18.112Z",
     "units": "scene-units"
   },
   "nodes": [
@@ -11,9 +11,9 @@
       "type": "kiosk",
       "floor": 1,
       "pos": [
-        -1277.162,
-        0.001,
-        -376.248
+        -3.104,
+        0.197,
+        0.884
       ]
     },
     {
@@ -21,9 +21,9 @@
       "type": "waypoint",
       "floor": 1,
       "pos": [
-        -1292.909,
-        0.001,
-        -383.931
+        -4.069,
+        0.162,
+        5.226
       ]
     },
     {
@@ -31,19 +31,437 @@
       "type": "waypoint",
       "floor": 1,
       "pos": [
-        -1316.75,
-        0.001,
-        -380.947
+        -10.31,
+        0.162,
+        2.01
       ]
+    },
+    {
+      "id": "DOOR_BOYNER",
+      "type": "door",
+      "floor": 1,
+      "pos": [
+        17.388,
+        0.164,
+        2.226
+      ],
+      "storeId": "BOYNER"
+    },
+    {
+      "id": "DOOR_SUPERSTEP",
+      "type": "door",
+      "floor": 1,
+      "pos": [
+        7.724,
+        0.164,
+        9.8
+      ],
+      "storeId": "SUPERSTEP"
+    },
+    {
+      "id": "DOOR_INTERSPORT",
+      "type": "door",
+      "floor": 1,
+      "pos": [
+        -3.936,
+        0.484,
+        9.758
+      ],
+      "storeId": "INTERSPORT"
+    },
+    {
+      "id": "DOOR_FASHFED",
+      "type": "door",
+      "floor": 1,
+      "pos": [
+        -11.309,
+        0.177,
+        6.708
+      ],
+      "storeId": "FASHFED"
+    },
+    {
+      "id": "DOOR_LIZAY",
+      "type": "door",
+      "floor": 1,
+      "pos": [
+        -24.985,
+        0.164,
+        6.927
+      ],
+      "storeId": "LIZAY"
+    },
+    {
+      "id": "DOOR_SELECTED",
+      "type": "door",
+      "floor": 1,
+      "pos": [
+        -34.932,
+        0.164,
+        8.41
+      ],
+      "storeId": "SELECTED"
+    },
+    {
+      "id": "DOOR_LACOSTE",
+      "type": "door",
+      "floor": 1,
+      "pos": [
+        -44.907,
+        0.277,
+        9.898
+      ],
+      "storeId": "LACOSTE"
+    },
+    {
+      "id": "DOOR_GANT",
+      "type": "door",
+      "floor": 1,
+      "pos": [
+        -61.227,
+        0.563,
+        16.546
+      ],
+      "storeId": "GANT"
+    },
+    {
+      "id": "DOOR_BARBOUR",
+      "type": "door",
+      "floor": 1,
+      "pos": [
+        -69.635,
+        0.504,
+        17.788
+      ],
+      "storeId": "BARBOUR"
+    },
+    {
+      "id": "DOOR_MANGO",
+      "type": "door",
+      "floor": 1,
+      "pos": [
+        -83.671,
+        0.344,
+        22.016
+      ],
+      "storeId": "MANGO"
+    },
+    {
+      "id": "DOOR_MUDO",
+      "type": "door",
+      "floor": 1,
+      "pos": [
+        -99.077,
+        0.164,
+        30.113
+      ],
+      "storeId": "MUDO"
+    },
+    {
+      "id": "DOOR_ADL",
+      "type": "door",
+      "floor": 1,
+      "pos": [
+        -112.563,
+        0.164,
+        32.172
+      ],
+      "storeId": "ADL"
+    },
+    {
+      "id": "DOOR_ARABICACOFFE",
+      "type": "door",
+      "floor": 1,
+      "pos": [
+        -129.726,
+        0.164,
+        34.997
+      ],
+      "storeId": "ARABICACOFFE"
+    },
+    {
+      "id": "DOOR_NAUTICA",
+      "type": "door",
+      "floor": 1,
+      "pos": [
+        33.89,
+        0.392,
+        -10.086
+      ],
+      "storeId": "NAUTICA"
+    },
+    {
+      "id": "DOOR_NORTHFACE",
+      "type": "door",
+      "floor": 1,
+      "pos": [
+        40.165,
+        0.288,
+        -9.419
+      ],
+      "storeId": "NORTHFACE"
+    },
+    {
+      "id": "DOOR_TIMBERLAND",
+      "type": "door",
+      "floor": 1,
+      "pos": [
+        47.21,
+        0.437,
+        -8.644
+      ],
+      "storeId": "TIMBERLAND"
+    },
+    {
+      "id": "DOOR_CAMPER",
+      "type": "door",
+      "floor": 1,
+      "pos": [
+        55.111,
+        0.434,
+        -8.018
+      ],
+      "storeId": "CAMPER"
+    },
+    {
+      "id": "DOOR_JACKJONES",
+      "type": "door",
+      "floor": 1,
+      "pos": [
+        63.025,
+        0.321,
+        -8.664
+      ],
+      "storeId": "JACKJONES"
+    },
+    {
+      "id": "DOOR_SAATSAAT",
+      "type": "door",
+      "floor": 1,
+      "pos": [
+        74.247,
+        0.319,
+        -7.336
+      ],
+      "storeId": "SAATSAAT"
+    },
+    {
+      "id": "DOOR_KIKA",
+      "type": "door",
+      "floor": 1,
+      "pos": [
+        105.328,
+        0.394,
+        -4.302
+      ],
+      "storeId": "KIKA"
+    },
+    {
+      "id": "DOOR_SIMITSARAYI",
+      "type": "door",
+      "floor": 1,
+      "pos": [
+        120.221,
+        0.17,
+        1.654
+      ],
+      "storeId": "SIMITSARAYI"
+    },
+    {
+      "id": "DOOR_MIGROS",
+      "type": "door",
+      "floor": 1,
+      "pos": [
+        131.688,
+        0.48,
+        22.068
+      ],
+      "storeId": "MIGROS"
+    },
+    {
+      "id": "DOOR_KEIFI",
+      "type": "door",
+      "floor": 1,
+      "pos": [
+        28.029,
+        0.335,
+        -47.315
+      ],
+      "storeId": "KEIFI"
+    },
+    {
+      "id": "DOOR_OZSUT",
+      "type": "door",
+      "floor": 1,
+      "pos": [
+        29.124,
+        0.502,
+        -28.33
+      ],
+      "storeId": "OZSUT"
+    },
+    {
+      "id": "DOOR_THEBURGERSHOP",
+      "type": "door",
+      "floor": 1,
+      "pos": [
+        46.367,
+        0.305,
+        -24.273
+      ],
+      "storeId": "THEBURGERSHOP"
+    },
+    {
+      "id": "DOOR_MOVENPICK",
+      "type": "door",
+      "floor": 1,
+      "pos": [
+        53.207,
+        0.28,
+        -24.362
+      ],
+      "storeId": "MOVENPICK"
+    },
+    {
+      "id": "DOOR_MUNCHIE",
+      "type": "door",
+      "floor": 1,
+      "pos": [
+        59.916,
+        0.608,
+        -24.362
+      ],
+      "storeId": "MUNCHIE"
+    },
+    {
+      "id": "DOOR_REEVCOFFEEROASTERY",
+      "type": "door",
+      "floor": 1,
+      "pos": [
+        69.862,
+        0.324,
+        -24.362
+      ],
+      "storeId": "REEVCOFFEEROASTERY"
+    },
+    {
+      "id": "DOOR_CAFEDITOEE",
+      "type": "door",
+      "floor": 1,
+      "pos": [
+        96.601,
+        0.185,
+        -24.125
+      ],
+      "storeId": "CAFEDITOEE"
+    },
+    {
+      "id": "DOOR_MIKELCOFFE",
+      "type": "door",
+      "floor": 1,
+      "pos": [
+        112.972,
+        0.185,
+        -24.315
+      ],
+      "storeId": "MIKELCOFFE"
+    },
+    {
+      "id": "DOOR_KOCATEPE",
+      "type": "door",
+      "floor": 1,
+      "pos": [
+        127.485,
+        0.251,
+        -31.712
+      ],
+      "storeId": "KOCATEPE"
+    },
+    {
+      "id": "DOOR_KAHVEDUNYASI",
+      "type": "door",
+      "floor": 1,
+      "pos": [
+        -19.778,
+        -0.006,
+        -44.355
+      ],
+      "storeId": "KAHVEDUNYASI"
+    },
+    {
+      "id": "DOOR_BIGCHEF",
+      "type": "door",
+      "floor": 1,
+      "pos": [
+        -27.682,
+        0.29,
+        -28.466
+      ],
+      "storeId": "BIGCHEF"
+    },
+    {
+      "id": "DOOR_KEI",
+      "type": "door",
+      "floor": 1,
+      "pos": [
+        -54.957,
+        0.574,
+        -18.407
+      ],
+      "storeId": "KEI"
+    },
+    {
+      "id": "DOOR_PIZZAARGENTINA",
+      "type": "door",
+      "floor": 1,
+      "pos": [
+        -97.812,
+        0.574,
+        -20.686
+      ],
+      "storeId": "PIZZAARGENTINA"
+    },
+    {
+      "id": "DOOR_SELE",
+      "type": "door",
+      "floor": 1,
+      "pos": [
+        -113.998,
+        0.519,
+        -20.687
+      ],
+      "storeId": "SELE"
+    },
+    {
+      "id": "DOOR_ESPRESSOLAB",
+      "type": "door",
+      "floor": 1,
+      "pos": [
+        -124.886,
+        0.437,
+        -44.17
+      ],
+      "storeId": "ESPRESSOLAB"
+    },
+    {
+      "id": "DOOR_ROASTNBERRY",
+      "type": "door",
+      "floor": 1,
+      "pos": [
+        82.946,
+        0.43,
+        -24.362
+      ],
+      "storeId": "ROASTNBERRY"
     },
     {
       "id": "W_003",
       "type": "waypoint",
       "floor": 1,
       "pos": [
-        -1340.803,
-        0.001,
-        -375.779
+        -3.476,
+        0.197,
+        3.117
       ]
     },
     {
@@ -51,30 +469,19 @@
       "type": "waypoint",
       "floor": 1,
       "pos": [
-        -1362.497,
-        0.001,
-        -372.767
+        26.002,
+        0.214,
+        -17.161
       ]
-    },
-    {
-      "id": "DOOR_MANGO",
-      "type": "door",
-      "floor": 1,
-      "pos": [
-        -1364.252,
-        0.001,
-        -361.926
-      ],
-      "storeId": "MANGO"
     },
     {
       "id": "W_005",
       "type": "waypoint",
       "floor": 1,
       "pos": [
-        -1261.561,
-        0.001,
-        -382.701
+        30.239,
+        0.167,
+        -17.326
       ]
     },
     {
@@ -82,9 +489,9 @@
       "type": "waypoint",
       "floor": 1,
       "pos": [
-        -1251.802,
-        0.001,
-        -391.632
+        34.598,
+        0.167,
+        -17.38
       ]
     },
     {
@@ -92,9 +499,9 @@
       "type": "waypoint",
       "floor": 1,
       "pos": [
-        -1236.987,
-        0.001,
-        -395.648
+        37.443,
+        0.167,
+        -17.38
       ]
     },
     {
@@ -102,9 +509,9 @@
       "type": "waypoint",
       "floor": 1,
       "pos": [
-        -1223.569,
-        0.001,
-        -396.772
+        40.289,
+        0.167,
+        -17.271
       ]
     },
     {
@@ -112,9 +519,9 @@
       "type": "waypoint",
       "floor": 1,
       "pos": [
-        -1210.056,
-        0.001,
-        -397.196
+        42.861,
+        0.167,
+        -17.271
       ]
     },
     {
@@ -122,30 +529,19 @@
       "type": "waypoint",
       "floor": 1,
       "pos": [
-        -1197.464,
-        0.001,
-        -397.297
+        46.582,
+        0.167,
+        -17.271
       ]
-    },
-    {
-      "id": "DOOR_ROASTNBERRY",
-      "type": "door",
-      "floor": 1,
-      "pos": [
-        -1190.857,
-        0.001,
-        -404.671
-      ],
-      "storeId": "ROASTNBERRY"
     },
     {
       "id": "W_011",
       "type": "waypoint",
       "floor": 1,
       "pos": [
-        -1187.155,
-        0.001,
-        -396.5
+        49.023,
+        0.167,
+        -17.326
       ]
     },
     {
@@ -153,21 +549,1200 @@
       "type": "waypoint",
       "floor": 1,
       "pos": [
-        -1176.281,
-        0.001,
-        -395.994
+        53.109,
+        0.167,
+        -17.326
       ]
     },
     {
-      "id": "DOOR_KIKAKITAPKAFE",
-      "type": "door",
+      "id": "W_013",
+      "type": "waypoint",
       "floor": 1,
       "pos": [
-        -1170.229,
-        0.001,
-        -384.266
-      ],
-      "storeId": "KIKAKITAPKAFE"
+        56.72,
+        0.167,
+        -17.216
+      ]
+    },
+    {
+      "id": "W_014",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        61.095,
+        0.167,
+        -17.162
+      ]
+    },
+    {
+      "id": "W_015",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        65.218,
+        0.167,
+        -17.052
+      ]
+    },
+    {
+      "id": "W_016",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        69.32,
+        0.167,
+        -17.216
+      ]
+    },
+    {
+      "id": "W_017",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        73.835,
+        0.167,
+        -17.077
+      ]
+    },
+    {
+      "id": "W_018",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        79.521,
+        0.167,
+        -17.311
+      ]
+    },
+    {
+      "id": "W_019",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        83.636,
+        0.167,
+        -17.366
+      ]
+    },
+    {
+      "id": "W_020",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        86.523,
+        0.167,
+        -17.366
+      ]
+    },
+    {
+      "id": "W_021",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        89.882,
+        0.167,
+        -17.256
+      ]
+    },
+    {
+      "id": "W_022",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        94.417,
+        0.167,
+        -17.201
+      ]
+    },
+    {
+      "id": "W_023",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        98.299,
+        0.167,
+        -17.201
+      ]
+    },
+    {
+      "id": "W_024",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        102.585,
+        0.167,
+        -17.201
+      ]
+    },
+    {
+      "id": "W_025",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        107.752,
+        0.167,
+        -17.147
+      ]
+    },
+    {
+      "id": "W_026",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        113.123,
+        0.167,
+        -17.119
+      ]
+    },
+    {
+      "id": "W_027",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        117.884,
+        0.167,
+        -17.174
+      ]
+    },
+    {
+      "id": "W_028",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        122.885,
+        0.167,
+        -17.174
+      ]
+    },
+    {
+      "id": "W_029",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        24.549,
+        0.185,
+        -23.165
+      ]
+    },
+    {
+      "id": "W_030",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        24.549,
+        0.185,
+        -27.12
+      ]
+    },
+    {
+      "id": "W_031",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        46.182,
+        0.185,
+        -21.134
+      ]
+    },
+    {
+      "id": "W_032",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        53.227,
+        0.185,
+        -21.18
+      ]
+    },
+    {
+      "id": "W_033",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        60.256,
+        0.185,
+        -21.19
+      ]
+    },
+    {
+      "id": "W_034",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        69.823,
+        0.185,
+        -21.383
+      ]
+    },
+    {
+      "id": "W_035",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        82.926,
+        0.185,
+        -21.105
+      ]
+    },
+    {
+      "id": "W_036",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        96.614,
+        0.185,
+        -21.022
+      ]
+    },
+    {
+      "id": "W_037",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        112.703,
+        0.185,
+        -21.022
+      ]
+    },
+    {
+      "id": "W_038",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        21.869,
+        0.167,
+        -17.287
+      ]
+    },
+    {
+      "id": "W_039",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        20.651,
+        0.214,
+        -23.246
+      ]
+    },
+    {
+      "id": "W_040",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        19.179,
+        0.167,
+        -29.648
+      ]
+    },
+    {
+      "id": "W_041",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        17.001,
+        0.167,
+        -35.285
+      ]
+    },
+    {
+      "id": "W_042",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        16.36,
+        0.167,
+        -40.922
+      ]
+    },
+    {
+      "id": "W_043",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        18.346,
+        0.167,
+        -44.894
+      ]
+    },
+    {
+      "id": "W_044",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        23.082,
+        0.335,
+        -45.458
+      ]
+    },
+    {
+      "id": "W_045",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        -13.729,
+        0.167,
+        -1.86
+      ]
+    },
+    {
+      "id": "W_046",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        -16.035,
+        0.214,
+        -6.409
+      ]
+    },
+    {
+      "id": "W_047",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        -21.864,
+        0.167,
+        -9.033
+      ]
+    },
+    {
+      "id": "W_048",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        -27.562,
+        0.214,
+        -10.315
+      ]
+    },
+    {
+      "id": "W_049",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        -35.756,
+        0.16,
+        -10.57
+      ]
+    },
+    {
+      "id": "W_050",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        -44.667,
+        0.167,
+        -10.826
+      ]
+    },
+    {
+      "id": "W_051",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        -49.515,
+        0.167,
+        -9.994
+      ]
+    },
+    {
+      "id": "W_052",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        -56.574,
+        0.123,
+        -10.042
+      ]
+    },
+    {
+      "id": "W_053",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        -64.537,
+        0.123,
+        -10.299
+      ]
+    },
+    {
+      "id": "W_054",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        -70.177,
+        0.123,
+        -10.491
+      ]
+    },
+    {
+      "id": "W_055",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        -76.279,
+        0.123,
+        -9.929
+      ]
+    },
+    {
+      "id": "W_056",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        -84.208,
+        0.123,
+        -10.171
+      ]
+    },
+    {
+      "id": "W_057",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        -90.423,
+        0.123,
+        -9.915
+      ]
+    },
+    {
+      "id": "W_058",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        -93.296,
+        0.168,
+        -12.35
+      ]
+    },
+    {
+      "id": "W_059",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        -96.989,
+        0.168,
+        -12.551
+      ]
+    },
+    {
+      "id": "W_060",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        -101.403,
+        0.168,
+        -12.704
+      ]
+    },
+    {
+      "id": "W_061",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        -106.657,
+        0.168,
+        -12.712
+      ]
+    },
+    {
+      "id": "W_062",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        -112.392,
+        0.17,
+        -12.559
+      ]
+    },
+    {
+      "id": "W_063",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        -118.791,
+        0.175,
+        -11.994
+      ]
+    },
+    {
+      "id": "W_064",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        -126.312,
+        0.138,
+        -11.798
+      ]
+    },
+    {
+      "id": "W_065",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        -130.353,
+        0.136,
+        -18.105
+      ]
+    },
+    {
+      "id": "W_066",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        -131.463,
+        0.136,
+        -26.864
+      ]
+    },
+    {
+      "id": "W_067",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        -131.004,
+        0.136,
+        -37.14
+      ]
+    },
+    {
+      "id": "W_068",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        -130.262,
+        0.136,
+        -43.366
+      ]
+    },
+    {
+      "id": "W_069",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        -114.482,
+        0.136,
+        -17.302
+      ]
+    },
+    {
+      "id": "W_070",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        -97.768,
+        0.136,
+        -17.509
+      ]
+    },
+    {
+      "id": "W_071",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        -55.029,
+        0.136,
+        -14.849
+      ]
+    },
+    {
+      "id": "W_072",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        -21.438,
+        0.167,
+        -14.228
+      ]
+    },
+    {
+      "id": "W_073",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        -21.032,
+        0.167,
+        -21.185
+      ]
+    },
+    {
+      "id": "W_074",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        -24.799,
+        0.187,
+        -26.5
+      ]
+    },
+    {
+      "id": "W_075",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        -19.231,
+        0.167,
+        -27.652
+      ]
+    },
+    {
+      "id": "W_076",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        -16.533,
+        0.167,
+        -33.945
+      ]
+    },
+    {
+      "id": "W_077",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        -13.531,
+        0.214,
+        -40.242
+      ]
+    },
+    {
+      "id": "W_078",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        -14.598,
+        0.167,
+        -43.302
+      ]
+    },
+    {
+      "id": "W_079",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        -0.3,
+        0.162,
+        6.137
+      ]
+    },
+    {
+      "id": "W_080",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        3.851,
+        0.162,
+        6.08
+      ]
+    },
+    {
+      "id": "W_081",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        9.522,
+        0.162,
+        5.543
+      ]
+    },
+    {
+      "id": "W_082",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        12.863,
+        0.162,
+        2.262
+      ]
+    },
+    {
+      "id": "W_083",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        15.197,
+        0.191,
+        -1.358
+      ]
+    },
+    {
+      "id": "W_084",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        17.421,
+        0.167,
+        -4.943
+      ]
+    },
+    {
+      "id": "W_085",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        20.146,
+        0.214,
+        -9.019
+      ]
+    },
+    {
+      "id": "W_086",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        21.46,
+        0.167,
+        -12.955
+      ]
+    },
+    {
+      "id": "W_087",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        -14.792,
+        0.156,
+        1.528
+      ]
+    },
+    {
+      "id": "W_089",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        -26.184,
+        0.156,
+        3.566
+      ]
+    },
+    {
+      "id": "W_090",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        -30.106,
+        0.156,
+        4.15
+      ]
+    },
+    {
+      "id": "W_091",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        -37.05,
+        0.156,
+        5.116
+      ]
+    },
+    {
+      "id": "W_092",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        -44.149,
+        0.156,
+        6.234
+      ]
+    },
+    {
+      "id": "W_093",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        -50.645,
+        0.156,
+        6.962
+      ]
+    },
+    {
+      "id": "W_094",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        -56.337,
+        0.156,
+        8.398
+      ]
+    },
+    {
+      "id": "W_095",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        -60.537,
+        0.168,
+        11.573
+      ]
+    },
+    {
+      "id": "W_096",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        -65.458,
+        0.168,
+        12.575
+      ]
+    },
+    {
+      "id": "W_097",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        -70.705,
+        0.198,
+        13.046
+      ]
+    },
+    {
+      "id": "W_098",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        -75.779,
+        0.174,
+        13.794
+      ]
+    },
+    {
+      "id": "W_099",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        -79.949,
+        0.174,
+        14.449
+      ]
+    },
+    {
+      "id": "W_100",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        -85.568,
+        0.174,
+        15.413
+      ]
+    },
+    {
+      "id": "W_101",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        -90.804,
+        0.174,
+        16.055
+      ]
+    },
+    {
+      "id": "W_102",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        -92.23,
+        0.164,
+        20.03
+      ]
+    },
+    {
+      "id": "W_103",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        -100.275,
+        0.164,
+        23.208
+      ]
+    },
+    {
+      "id": "W_104",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        -110.037,
+        0.164,
+        23.998
+      ]
+    },
+    {
+      "id": "W_105",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        -21.109,
+        0.156,
+        2.716
+      ]
+    },
+    {
+      "id": "W_106",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        125.452,
+        0.185,
+        -20.315
+      ]
+    },
+    {
+      "id": "W_107",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        126.523,
+        0.185,
+        -26.289
+      ]
+    },
+    {
+      "id": "W_108",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        125.901,
+        0.16,
+        -15.348
+      ]
+    },
+    {
+      "id": "W_109",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        128.336,
+        0.167,
+        -11.292
+      ]
+    },
+    {
+      "id": "W_110",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        129.309,
+        0.181,
+        -6.371
+      ]
+    },
+    {
+      "id": "W_111",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        130.761,
+        0.167,
+        0.559
+      ]
+    },
+    {
+      "id": "W_112",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        132.204,
+        0.164,
+        5.365
+      ]
+    },
+    {
+      "id": "W_113",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        133.958,
+        0.164,
+        11.873
+      ]
+    },
+    {
+      "id": "W_114",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        135.083,
+        0.192,
+        18.296
+      ]
+    },
+    {
+      "id": "W_115",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        117.329,
+        0.164,
+        -3.095
+      ]
+    },
+    {
+      "id": "W_116",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        108.392,
+        0.164,
+        -7.941
+      ]
+    },
+    {
+      "id": "W_117",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        103.642,
+        0.185,
+        -12.212
+      ]
+    },
+    {
+      "id": "W_118",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        104.811,
+        0.164,
+        -7.051
+      ]
+    },
+    {
+      "id": "W_119",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        32.607,
+        0.191,
+        -14.203
+      ]
+    },
+    {
+      "id": "W_120",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        39.565,
+        0.164,
+        -11.931
+      ]
+    },
+    {
+      "id": "W_121",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        39.87,
+        0.191,
+        -14.393
+      ]
+    },
+    {
+      "id": "W_122",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        47.929,
+        0.164,
+        -10.782
+      ]
+    },
+    {
+      "id": "W_123",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        47.008,
+        0.191,
+        -13.422
+      ]
+    },
+    {
+      "id": "W_124",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        51.978,
+        0.16,
+        -12.643
+      ]
+    },
+    {
+      "id": "W_125",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        59.15,
+        0.16,
+        -11.093
+      ]
+    },
+    {
+      "id": "W_126",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        63.225,
+        0.164,
+        -9.582
+      ]
+    },
+    {
+      "id": "W_127",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        55.916,
+        0.164,
+        -9.93
+      ]
+    },
+    {
+      "id": "W_128",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        69.571,
+        0.164,
+        -12.012
+      ]
+    },
+    {
+      "id": "W_129",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        72.294,
+        0.164,
+        -11.611
+      ]
+    },
+    {
+      "id": "W_130",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        -117.28,
+        0.164,
+        24.104
+      ]
+    },
+    {
+      "id": "W_131",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        -123.627,
+        0.164,
+        25.598
+      ]
+    },
+    {
+      "id": "W_132",
+      "type": "waypoint",
+      "floor": 1,
+      "pos": [
+        -127.767,
+        0.164,
+        28.372
+      ]
     }
   ],
   "edges": [
@@ -177,23 +1752,8 @@
       "type": "walk"
     },
     {
-      "from": "W_002",
-      "to": "W_003",
-      "type": "walk"
-    },
-    {
-      "from": "W_003",
-      "to": "W_004",
-      "type": "walk"
-    },
-    {
       "from": "W_004",
-      "to": "DOOR_MANGO",
-      "type": "walk"
-    },
-    {
-      "from": "NODE_KIOSK_START",
-      "to": "W_001",
+      "to": "W_005",
       "type": "walk"
     },
     {
@@ -223,7 +1783,7 @@
     },
     {
       "from": "W_010",
-      "to": "DOOR_ROASTNBERRY",
+      "to": "W_011",
       "type": "walk"
     },
     {
@@ -233,17 +1793,802 @@
     },
     {
       "from": "W_012",
-      "to": "DOOR_KIKAKITAPKAFE",
+      "to": "W_013",
       "type": "walk"
     },
     {
-      "from": "W_010",
-      "to": "W_011",
+      "from": "W_013",
+      "to": "W_014",
+      "type": "walk"
+    },
+    {
+      "from": "W_014",
+      "to": "W_015",
+      "type": "walk"
+    },
+    {
+      "from": "W_015",
+      "to": "W_016",
+      "type": "walk"
+    },
+    {
+      "from": "W_016",
+      "to": "W_017",
+      "type": "walk"
+    },
+    {
+      "from": "W_017",
+      "to": "W_018",
+      "type": "walk"
+    },
+    {
+      "from": "W_018",
+      "to": "W_019",
+      "type": "walk"
+    },
+    {
+      "from": "W_019",
+      "to": "W_020",
+      "type": "walk"
+    },
+    {
+      "from": "W_020",
+      "to": "W_021",
+      "type": "walk"
+    },
+    {
+      "from": "W_021",
+      "to": "W_022",
+      "type": "walk"
+    },
+    {
+      "from": "W_022",
+      "to": "W_023",
+      "type": "walk"
+    },
+    {
+      "from": "W_023",
+      "to": "W_024",
+      "type": "walk"
+    },
+    {
+      "from": "W_024",
+      "to": "W_025",
+      "type": "walk"
+    },
+    {
+      "from": "W_025",
+      "to": "W_026",
+      "type": "walk"
+    },
+    {
+      "from": "W_026",
+      "to": "W_027",
+      "type": "walk"
+    },
+    {
+      "from": "W_027",
+      "to": "W_028",
+      "type": "walk"
+    },
+    {
+      "from": "W_002",
+      "to": "W_045",
+      "type": "walk"
+    },
+    {
+      "from": "W_045",
+      "to": "W_046",
+      "type": "walk"
+    },
+    {
+      "from": "W_046",
+      "to": "W_047",
+      "type": "walk"
+    },
+    {
+      "from": "W_047",
+      "to": "W_048",
+      "type": "walk"
+    },
+    {
+      "from": "W_048",
+      "to": "W_049",
+      "type": "walk"
+    },
+    {
+      "from": "W_049",
+      "to": "W_050",
+      "type": "walk"
+    },
+    {
+      "from": "W_050",
+      "to": "W_051",
+      "type": "walk"
+    },
+    {
+      "from": "W_051",
+      "to": "W_052",
+      "type": "walk"
+    },
+    {
+      "from": "W_052",
+      "to": "W_053",
+      "type": "walk"
+    },
+    {
+      "from": "W_053",
+      "to": "W_054",
+      "type": "walk"
+    },
+    {
+      "from": "W_054",
+      "to": "W_055",
+      "type": "walk"
+    },
+    {
+      "from": "W_055",
+      "to": "W_056",
+      "type": "walk"
+    },
+    {
+      "from": "W_056",
+      "to": "W_057",
+      "type": "walk"
+    },
+    {
+      "from": "W_057",
+      "to": "W_058",
+      "type": "walk"
+    },
+    {
+      "from": "W_058",
+      "to": "W_059",
+      "type": "walk"
+    },
+    {
+      "from": "W_059",
+      "to": "W_060",
+      "type": "walk"
+    },
+    {
+      "from": "W_060",
+      "to": "W_061",
+      "type": "walk"
+    },
+    {
+      "from": "W_061",
+      "to": "W_062",
+      "type": "walk"
+    },
+    {
+      "from": "W_062",
+      "to": "W_063",
+      "type": "walk"
+    },
+    {
+      "from": "W_063",
+      "to": "W_064",
+      "type": "walk"
+    },
+    {
+      "from": "W_064",
+      "to": "W_065",
+      "type": "walk"
+    },
+    {
+      "from": "W_065",
+      "to": "W_066",
+      "type": "walk"
+    },
+    {
+      "from": "W_066",
+      "to": "W_067",
+      "type": "walk"
+    },
+    {
+      "from": "W_067",
+      "to": "W_068",
+      "type": "walk"
+    },
+    {
+      "from": "W_068",
+      "to": "DOOR_ESPRESSOLAB",
+      "type": "walk"
+    },
+    {
+      "from": "W_059",
+      "to": "W_070",
+      "type": "walk"
+    },
+    {
+      "from": "W_070",
+      "to": "DOOR_PIZZAARGENTINA",
+      "type": "walk"
+    },
+    {
+      "from": "W_062",
+      "to": "W_069",
+      "type": "walk"
+    },
+    {
+      "from": "W_069",
+      "to": "DOOR_SELE",
+      "type": "walk"
+    },
+    {
+      "from": "W_052",
+      "to": "W_071",
+      "type": "walk"
+    },
+    {
+      "from": "W_071",
+      "to": "DOOR_KEI",
+      "type": "walk"
+    },
+    {
+      "from": "W_047",
+      "to": "W_072",
+      "type": "walk"
+    },
+    {
+      "from": "W_072",
+      "to": "W_073",
+      "type": "walk"
+    },
+    {
+      "from": "W_073",
+      "to": "W_074",
+      "type": "walk"
+    },
+    {
+      "from": "W_074",
+      "to": "DOOR_BIGCHEF",
+      "type": "walk"
+    },
+    {
+      "from": "W_073",
+      "to": "W_075",
+      "type": "walk"
+    },
+    {
+      "from": "W_075",
+      "to": "W_076",
+      "type": "walk"
+    },
+    {
+      "from": "W_076",
+      "to": "W_077",
+      "type": "walk"
+    },
+    {
+      "from": "W_077",
+      "to": "W_078",
+      "type": "walk"
+    },
+    {
+      "from": "W_078",
+      "to": "DOOR_KAHVEDUNYASI",
+      "type": "walk"
+    },
+    {
+      "from": "W_002",
+      "to": "W_087",
+      "type": "walk"
+    },
+    {
+      "from": "W_087",
+      "to": "W_105",
+      "type": "walk"
+    },
+    {
+      "from": "W_105",
+      "to": "W_089",
+      "type": "walk"
+    },
+    {
+      "from": "W_089",
+      "to": "DOOR_LIZAY",
+      "type": "walk"
+    },
+    {
+      "from": "W_089",
+      "to": "W_090",
+      "type": "walk"
+    },
+    {
+      "from": "W_090",
+      "to": "W_091",
+      "type": "walk"
+    },
+    {
+      "from": "W_091",
+      "to": "W_092",
+      "type": "walk"
+    },
+    {
+      "from": "W_092",
+      "to": "W_093",
+      "type": "walk"
+    },
+    {
+      "from": "W_093",
+      "to": "W_094",
+      "type": "walk"
+    },
+    {
+      "from": "W_094",
+      "to": "W_095",
+      "type": "walk"
+    },
+    {
+      "from": "W_095",
+      "to": "W_096",
+      "type": "walk"
+    },
+    {
+      "from": "W_096",
+      "to": "W_097",
+      "type": "walk"
+    },
+    {
+      "from": "W_097",
+      "to": "W_098",
+      "type": "walk"
+    },
+    {
+      "from": "W_098",
+      "to": "W_099",
+      "type": "walk"
+    },
+    {
+      "from": "W_099",
+      "to": "W_100",
+      "type": "walk"
+    },
+    {
+      "from": "W_100",
+      "to": "W_101",
+      "type": "walk"
+    },
+    {
+      "from": "W_101",
+      "to": "W_102",
+      "type": "walk"
+    },
+    {
+      "from": "W_102",
+      "to": "W_103",
+      "type": "walk"
+    },
+    {
+      "from": "W_103",
+      "to": "W_104",
+      "type": "walk"
+    },
+    {
+      "from": "W_104",
+      "to": "DOOR_ADL",
+      "type": "walk"
+    },
+    {
+      "from": "W_103",
+      "to": "DOOR_MUDO",
+      "type": "walk"
+    },
+    {
+      "from": "W_100",
+      "to": "DOOR_MANGO",
+      "type": "walk"
+    },
+    {
+      "from": "W_097",
+      "to": "DOOR_BARBOUR",
+      "type": "walk"
+    },
+    {
+      "from": "W_095",
+      "to": "DOOR_GANT",
+      "type": "walk"
+    },
+    {
+      "from": "W_092",
+      "to": "DOOR_LACOSTE",
+      "type": "walk"
+    },
+    {
+      "from": "W_090",
+      "to": "DOOR_SELECTED",
+      "type": "walk"
+    },
+    {
+      "from": "W_001",
+      "to": "DOOR_FASHFED",
       "type": "walk"
     },
     {
       "from": "NODE_KIOSK_START",
-      "to": "W_005",
+      "to": "W_003",
+      "type": "walk"
+    },
+    {
+      "from": "W_003",
+      "to": "W_001",
+      "type": "walk"
+    },
+    {
+      "from": "W_001",
+      "to": "W_079",
+      "type": "walk"
+    },
+    {
+      "from": "W_079",
+      "to": "W_080",
+      "type": "walk"
+    },
+    {
+      "from": "W_080",
+      "to": "W_081",
+      "type": "walk"
+    },
+    {
+      "from": "W_081",
+      "to": "W_082",
+      "type": "walk"
+    },
+    {
+      "from": "W_082",
+      "to": "W_083",
+      "type": "walk"
+    },
+    {
+      "from": "W_083",
+      "to": "W_084",
+      "type": "walk"
+    },
+    {
+      "from": "W_084",
+      "to": "W_085",
+      "type": "walk"
+    },
+    {
+      "from": "W_085",
+      "to": "W_086",
+      "type": "walk"
+    },
+    {
+      "from": "W_086",
+      "to": "W_038",
+      "type": "walk"
+    },
+    {
+      "from": "W_038",
+      "to": "W_004",
+      "type": "walk"
+    },
+    {
+      "from": "W_009",
+      "to": "W_031",
+      "type": "walk"
+    },
+    {
+      "from": "W_031",
+      "to": "DOOR_THEBURGERSHOP",
+      "type": "walk"
+    },
+    {
+      "from": "W_011",
+      "to": "W_032",
+      "type": "walk"
+    },
+    {
+      "from": "W_032",
+      "to": "DOOR_MOVENPICK",
+      "type": "walk"
+    },
+    {
+      "from": "W_013",
+      "to": "W_033",
+      "type": "walk"
+    },
+    {
+      "from": "W_033",
+      "to": "DOOR_MUNCHIE",
+      "type": "walk"
+    },
+    {
+      "from": "W_016",
+      "to": "W_034",
+      "type": "walk"
+    },
+    {
+      "from": "W_034",
+      "to": "DOOR_REEVCOFFEEROASTERY",
+      "type": "walk"
+    },
+    {
+      "from": "W_018",
+      "to": "W_035",
+      "type": "walk"
+    },
+    {
+      "from": "W_035",
+      "to": "DOOR_ROASTNBERRY",
+      "type": "walk"
+    },
+    {
+      "from": "W_022",
+      "to": "W_036",
+      "type": "walk"
+    },
+    {
+      "from": "W_036",
+      "to": "DOOR_CAFEDITOEE",
+      "type": "walk"
+    },
+    {
+      "from": "W_025",
+      "to": "W_037",
+      "type": "walk"
+    },
+    {
+      "from": "W_037",
+      "to": "DOOR_MIKELCOFFE",
+      "type": "walk"
+    },
+    {
+      "from": "W_005",
+      "to": "W_119",
+      "type": "walk"
+    },
+    {
+      "from": "W_119",
+      "to": "DOOR_NAUTICA",
+      "type": "walk"
+    },
+    {
+      "from": "W_007",
+      "to": "W_121",
+      "type": "walk"
+    },
+    {
+      "from": "W_121",
+      "to": "W_120",
+      "type": "walk"
+    },
+    {
+      "from": "W_120",
+      "to": "DOOR_NORTHFACE",
+      "type": "walk"
+    },
+    {
+      "from": "W_010",
+      "to": "W_123",
+      "type": "walk"
+    },
+    {
+      "from": "W_123",
+      "to": "W_122",
+      "type": "walk"
+    },
+    {
+      "from": "W_122",
+      "to": "DOOR_TIMBERLAND",
+      "type": "walk"
+    },
+    {
+      "from": "W_123",
+      "to": "W_124",
+      "type": "walk"
+    },
+    {
+      "from": "W_124",
+      "to": "W_127",
+      "type": "walk"
+    },
+    {
+      "from": "W_127",
+      "to": "DOOR_CAMPER",
+      "type": "walk"
+    },
+    {
+      "from": "W_124",
+      "to": "W_125",
+      "type": "walk"
+    },
+    {
+      "from": "W_125",
+      "to": "W_126",
+      "type": "walk"
+    },
+    {
+      "from": "W_126",
+      "to": "DOOR_JACKJONES",
+      "type": "walk"
+    },
+    {
+      "from": "W_126",
+      "to": "W_128",
+      "type": "walk"
+    },
+    {
+      "from": "W_128",
+      "to": "W_129",
+      "type": "walk"
+    },
+    {
+      "from": "W_129",
+      "to": "DOOR_SAATSAAT",
+      "type": "walk"
+    },
+    {
+      "from": "W_023",
+      "to": "W_117",
+      "type": "walk"
+    },
+    {
+      "from": "W_117",
+      "to": "W_118",
+      "type": "walk"
+    },
+    {
+      "from": "W_118",
+      "to": "DOOR_KIKA",
+      "type": "walk"
+    },
+    {
+      "from": "W_117",
+      "to": "W_116",
+      "type": "walk"
+    },
+    {
+      "from": "W_116",
+      "to": "W_115",
+      "type": "walk"
+    },
+    {
+      "from": "W_115",
+      "to": "DOOR_SIMITSARAYI",
+      "type": "walk"
+    },
+    {
+      "from": "W_028",
+      "to": "W_108",
+      "type": "walk"
+    },
+    {
+      "from": "W_108",
+      "to": "W_109",
+      "type": "walk"
+    },
+    {
+      "from": "W_109",
+      "to": "W_110",
+      "type": "walk"
+    },
+    {
+      "from": "W_110",
+      "to": "W_111",
+      "type": "walk"
+    },
+    {
+      "from": "W_111",
+      "to": "W_112",
+      "type": "walk"
+    },
+    {
+      "from": "W_112",
+      "to": "W_113",
+      "type": "walk"
+    },
+    {
+      "from": "W_113",
+      "to": "W_114",
+      "type": "walk"
+    },
+    {
+      "from": "W_114",
+      "to": "DOOR_MIGROS",
+      "type": "walk"
+    },
+    {
+      "from": "W_028",
+      "to": "W_106",
+      "type": "walk"
+    },
+    {
+      "from": "W_106",
+      "to": "W_107",
+      "type": "walk"
+    },
+    {
+      "from": "W_107",
+      "to": "DOOR_KOCATEPE",
+      "type": "walk"
+    },
+    {
+      "from": "W_038",
+      "to": "W_039",
+      "type": "walk"
+    },
+    {
+      "from": "W_039",
+      "to": "W_040",
+      "type": "walk"
+    },
+    {
+      "from": "W_040",
+      "to": "W_041",
+      "type": "walk"
+    },
+    {
+      "from": "W_041",
+      "to": "W_042",
+      "type": "walk"
+    },
+    {
+      "from": "W_042",
+      "to": "W_043",
+      "type": "walk"
+    },
+    {
+      "from": "W_043",
+      "to": "W_044",
+      "type": "walk"
+    },
+    {
+      "from": "W_044",
+      "to": "DOOR_KEIFI",
+      "type": "walk"
+    },
+    {
+      "from": "W_038",
+      "to": "W_029",
+      "type": "walk"
+    },
+    {
+      "from": "W_029",
+      "to": "W_030",
+      "type": "walk"
+    },
+    {
+      "from": "W_030",
+      "to": "DOOR_OZSUT",
+      "type": "walk"
+    },
+    {
+      "from": "W_082",
+      "to": "DOOR_BOYNER",
+      "type": "walk"
+    },
+    {
+      "from": "W_080",
+      "to": "DOOR_SUPERSTEP",
+      "type": "walk"
+    },
+    {
+      "from": "W_001",
+      "to": "DOOR_INTERSPORT",
+      "type": "walk"
+    },
+    {
+      "from": "W_104",
+      "to": "W_130",
+      "type": "walk"
+    },
+    {
+      "from": "W_130",
+      "to": "W_131",
+      "type": "walk"
+    },
+    {
+      "from": "W_131",
+      "to": "W_132",
+      "type": "walk"
+    },
+    {
+      "from": "W_132",
+      "to": "DOOR_ARABICACOFFE",
       "type": "walk"
     }
   ],
@@ -251,521 +2596,153 @@
     {
       "id": "LAMP_001",
       "pos": [
-        -1286.496,
-        -0.001,
-        -413.292
+        1.686,
+        0.204,
+        -28.758
       ]
     },
     {
       "id": "LAMP_002",
       "pos": [
-        -1291.695,
-        -0.001,
-        -402.782
+        -67.512,
+        0.213,
+        -0.838
       ]
     },
     {
       "id": "LAMP_003",
       "pos": [
-        -1293.847,
-        -0.001,
-        -391.11
+        -87.931,
+        0.171,
+        0.719
       ]
     },
     {
       "id": "LAMP_004",
       "pos": [
-        -1308.215,
-        -0.001,
-        -390.987
+        -103.894,
+        0.151,
+        0.265
       ]
     },
     {
       "id": "LAMP_005",
       "pos": [
-        -1332.83,
-        -0.001,
-        -390.793
+        5.898,
+        -4.152,
+        -17.324
       ]
     },
     {
       "id": "LAMP_006",
       "pos": [
-        -1350.38,
-        -0.001,
-        -390.613
+        0.364,
+        -2.246,
+        -7.504
       ]
     },
     {
       "id": "LAMP_007",
       "pos": [
-        -1371.468,
-        -0.001,
-        -390.772
+        43.731,
+        0.191,
+        -14.197
       ]
     },
     {
       "id": "LAMP_008",
       "pos": [
-        -1385.872,
-        -0.001,
-        -390.49
+        63.475,
+        0.191,
+        -14.101
       ]
     },
     {
       "id": "LAMP_009",
       "pos": [
-        -1380.755,
-        -0.001,
-        -367.613
+        91.6,
+        0.181,
+        -13.909
       ]
     },
     {
       "id": "LAMP_010",
       "pos": [
-        -1359.552,
-        -0.001,
-        -367.88
+        110.143,
+        0.185,
+        -14.102
       ]
     },
     {
       "id": "LAMP_011",
       "pos": [
-        -1343.569,
-        -0.001,
-        -371.076
+        124.303,
+        0.167,
+        -13.621
       ]
     },
     {
       "id": "LAMP_012",
       "pos": [
-        -1329.689,
-        -0.001,
-        -374.434
+        129.791,
+        0.164,
+        3.042
       ]
     },
     {
       "id": "LAMP_013",
       "pos": [
-        -1309.364,
-        -0.001,
-        -377.261
+        131.144,
+        0.167,
+        -27.203
       ]
     },
     {
       "id": "LAMP_014",
       "pos": [
-        -1289.862,
-        -0.001,
-        -379.665
+        -132.285,
+        0.193,
+        -4.678
       ]
     },
     {
       "id": "LAMP_015",
       "pos": [
-        -1263.228,
-        -0.001,
-        -413.467
+        -115.755,
+        0.174,
+        -7.47
       ]
     },
     {
       "id": "LAMP_016",
       "pos": [
-        -1257.653,
-        -0.001,
-        -400.981
+        -116.721,
+        0.174,
+        2.192
       ]
     },
     {
       "id": "LAMP_017",
       "pos": [
-        -1244.717,
-        -0.001,
-        -399.109
+        -137.661,
+        0.166,
+        -28.3
       ]
     },
     {
       "id": "LAMP_018",
       "pos": [
-        -1228.165,
-        -0.001,
-        -399.015
+        -143.669,
+        0.17,
+        -9.725
       ]
     },
     {
       "id": "LAMP_019",
       "pos": [
-        -1208.233,
-        -0.001,
-        -399.658
-      ]
-    },
-    {
-      "id": "LAMP_020",
-      "pos": [
-        -1186.657,
-        -0.001,
-        -399.803
-      ]
-    },
-    {
-      "id": "LAMP_021",
-      "pos": [
-        -1168.306,
-        -0.001,
-        -399.324
-      ]
-    },
-    {
-      "id": "LAMP_022",
-      "pos": [
-        -1149.563,
-        -0.001,
-        -399.837
-      ]
-    },
-    {
-      "id": "LAMP_023",
-      "pos": [
-        -1145.842,
-        -0.001,
-        -384.384
-      ]
-    },
-    {
-      "id": "LAMP_024",
-      "pos": [
-        -1163.647,
-        -0.001,
-        -390.198
-      ]
-    },
-    {
-      "id": "LAMP_025",
-      "pos": [
-        -1185.709,
-        -0.001,
-        -392.486
-      ]
-    },
-    {
-      "id": "LAMP_026",
-      "pos": [
-        -1212.543,
-        -0.001,
-        -393.832
-      ]
-    },
-    {
-      "id": "LAMP_027",
-      "pos": [
-        -1228.734,
-        -0.001,
-        -394.649
-      ]
-    },
-    {
-      "id": "LAMP_028",
-      "pos": [
-        -1245.603,
-        -0.001,
-        -393.777
-      ]
-    },
-    {
-      "id": "LAMP_029",
-      "pos": [
-        -427.256,
-        0.161,
-        -60.351
-      ]
-    },
-    {
-      "id": "LAMP_030",
-      "pos": [
-        -431.541,
-        0.161,
-        -54.832
-      ]
-    },
-    {
-      "id": "LAMP_031",
-      "pos": [
-        -434.417,
-        0.161,
-        -47.493
-      ]
-    },
-    {
-      "id": "LAMP_032",
-      "pos": [
-        -435.763,
-        0.186,
-        -35.579
-      ]
-    },
-    {
-      "id": "LAMP_033",
-      "pos": [
-        -434.179,
-        0.167,
-        -25.66
-      ]
-    },
-    {
-      "id": "LAMP_034",
-      "pos": [
-        -405.185,
-        0.167,
-        -25.19
-      ]
-    },
-    {
-      "id": "LAMP_035",
-      "pos": [
-        -402.543,
-        0.167,
-        -34.463
-      ]
-    },
-    {
-      "id": "LAMP_036",
-      "pos": [
-        -403.187,
-        0.167,
-        -48.433
-      ]
-    },
-    {
-      "id": "LAMP_037",
-      "pos": [
-        -406.239,
-        0.167,
-        -57.297
-      ]
-    },
-    {
-      "id": "LAMP_038",
-      "pos": [
-        -411.992,
-        0.167,
-        -63.286
-      ]
-    },
-    {
-      "id": "LAMP_039",
-      "pos": [
-        -442.368,
-        0.167,
-        -35.253
-      ]
-    },
-    {
-      "id": "LAMP_040",
-      "pos": [
-        -449.94,
-        0.167,
-        -35.194
-      ]
-    },
-    {
-      "id": "LAMP_041",
-      "pos": [
-        -460.33,
-        0.165,
-        -35.37
-      ]
-    },
-    {
-      "id": "LAMP_042",
-      "pos": [
-        -469.194,
-        0.165,
-        -35.311
-      ]
-    },
-    {
-      "id": "LAMP_043",
-      "pos": [
-        -514.132,
-        0.16,
-        -34.662
-      ]
-    },
-    {
-      "id": "LAMP_044",
-      "pos": [
-        -523.848,
-        0.145,
-        -34.752
-      ]
-    },
-    {
-      "id": "LAMP_045",
-      "pos": [
-        -532.608,
-        0.171,
-        -34.441
-      ]
-    },
-    {
-      "id": "LAMP_046",
-      "pos": [
-        -529.441,
-        0.164,
-        -13.669
-      ]
-    },
-    {
-      "id": "LAMP_047",
-      "pos": [
-        -519.934,
-        0.151,
-        -14.784
-      ]
-    },
-    {
-      "id": "LAMP_048",
-      "pos": [
-        -516.941,
-        0.16,
-        -23.061
-      ]
-    },
-    {
-      "id": "LAMP_049",
-      "pos": [
-        -516.941,
-        0.149,
-        -14.196
-      ]
-    },
-    {
-      "id": "LAMP_050",
-      "pos": [
-        -498.273,
-        0.149,
-        -16.603
-      ]
-    },
-    {
-      "id": "LAMP_051",
-      "pos": [
-        -492.286,
-        0.18,
-        -17.72
-      ]
-    },
-    {
-      "id": "LAMP_052",
-      "pos": [
-        -478.892,
-        0.18,
-        -19.606
-      ]
-    },
-    {
-      "id": "LAMP_053",
-      "pos": [
-        -500.169,
-        0.171,
-        -29.68
-      ]
-    },
-    {
-      "id": "LAMP_054",
-      "pos": [
-        -481.09,
-        0.212,
-        -29.914
-      ]
-    },
-    {
-      "id": "LAMP_055",
-      "pos": [
-        -469.413,
-        0.156,
-        -17.717
-      ]
-    },
-    {
-      "id": "LAMP_056",
-      "pos": [
-        -450.6,
-        0.156,
-        -21.174
-      ]
-    },
-    {
-      "id": "LAMP_057",
-      "pos": [
-        -396.132,
-        0.167,
-        -39.987
-      ]
-    },
-    {
-      "id": "LAMP_058",
-      "pos": [
-        -382.896,
-        0.165,
-        -39.658
-      ]
-    },
-    {
-      "id": "LAMP_059",
-      "pos": [
-        -372.826,
-        0.165,
-        -40.104
-      ]
-    },
-    {
-      "id": "LAMP_060",
-      "pos": [
-        -360.425,
-        0.165,
-        -40.563
-      ]
-    },
-    {
-      "id": "LAMP_061",
-      "pos": [
-        -346.434,
-        0.165,
-        -40.46
-      ]
-    },
-    {
-      "id": "LAMP_062",
-      "pos": [
-        -327.341,
-        0.165,
-        -40.391
-      ]
-    },
-    {
-      "id": "LAMP_063",
-      "pos": [
-        -317.099,
-        0.165,
-        -40.34
-      ]
-    },
-    {
-      "id": "LAMP_064",
-      "pos": [
-        -303.749,
-        0.165,
-        -39.869
-      ]
-    },
-    {
-      "id": "LAMP_065",
-      "pos": [
-        -292.725,
-        0.165,
-        -39.739
+        -143.666,
+        0.172,
+        4.893
       ]
     }
   ],

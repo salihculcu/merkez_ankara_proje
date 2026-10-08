@@ -5,7 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Merkez Ankara — İç Mekan Navigasyon</title>
   <link rel="icon" type="image/png" href="./assets/logo/merkez-ankara-logo.png" />
-  <link rel="stylesheet" href="./styles/main.css" />
+  <link rel="stylesheet" href="./styles/main.css?v=presentation1" />
+  <link rel="stylesheet" href="./styles/languages.css?v=1" />
   <script type="importmap">
     {
       "imports": {
@@ -19,6 +20,14 @@
   <!-- 3B sahne -->
   <div id="app"></div>
 
+  <!-- Yağmur: WebGL'e girmez, kapalıyken animasyon durur -->
+  <div id="rain" aria-hidden="true">
+    <div class="rain-dim"></div>
+    <div class="rain-drops"></div>
+  </div>
+
+  <canvas id="snow" aria-hidden="true"></canvas>
+
   <!-- Üst bar -->
   <header id="topbar">
     <div class="brand">
@@ -29,7 +38,12 @@
       </div>
     </div>
     <div class="topbar-right">
+      <select data-language-select aria-label="Dil"></select>
       <div id="clock" aria-hidden="true"></div>
+      <details id="view-menu" class="toolbar-menu">
+        <summary class="pill-btn">Görünüm <span aria-hidden="true">▾</span></summary>
+        <div class="toolbar-menu-content">
+          <p>Kat ve kamera</p>
       <button id="floor-toggle" class="pill-btn" type="button" title="Kat -1 denemesi: kamera aşağı iner">Kat -1</button>
       <button id="view2d-toggle" class="pill-btn" type="button" aria-pressed="false" title="Kuş bakışı 2B görünüm">
         <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -38,6 +52,15 @@
         </svg>
         <span>2B</span>
       </button>
+          <p>Hava ve ışık</p>
+      <button id="rain-toggle" class="pill-btn" type="button" aria-pressed="false" title="Yağmur efekti">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+          <path d="M20 16.6A5 5 0 0 0 18 7h-1.3A7 7 0 1 0 5 15.3"></path>
+          <path d="M8 19v2M12 19v3M16 19v2"></path>
+        </svg>
+        <span>Yağmur</span>
+      </button>
+      <button id="winter-toggle" class="pill-btn" type="button" aria-pressed="false" title="Kar birikintileri ve hafif kar yağışı">❄ <span>Kış modu</span></button>
       <button id="daynight-toggle" class="pill-btn" type="button" aria-pressed="false" title="Gece / Gündüz modu">
         <svg class="icon-sun" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
           <circle cx="12" cy="12" r="4"></circle>
@@ -48,6 +71,7 @@
         </svg>
         <span id="daynight-label">Gündüz</span>
       </button>
+          <p>Yönlendirme</p>
       <button id="a11y-toggle" class="pill-btn" type="button" aria-pressed="false" title="Engelsiz rota: merdiven ve yürüyen merdiven kullanılmaz">
         <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <circle cx="12" cy="4" r="2"></circle>
@@ -57,14 +81,50 @@
         </svg>
         <span>Engelsiz Rota</span>
       </button>
+          <p>Yönetim</p>
+          <a class="pill-btn analytics-link" href="./analytics.html" target="_blank" rel="noopener">İstatistikler</a>
+        </div>
+      </details>
+      <button id="presentation-toggle" class="pill-btn" type="button" aria-pressed="false">Sunum modu</button>
       <button id="editor-link" class="pill-btn" type="button" title="Graf editörünü aç">
         <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="M17 3a2.8 2.8 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z"></path>
         </svg>
         <span>Edit Mod</span>
       </button>
+      <button id="settings-open" class="pill-btn" type="button" aria-haspopup="dialog" aria-controls="graphics-dialog" aria-expanded="false" disabled><span aria-hidden="true">⚙</span> Ayarlar</button>
     </div>
   </header>
+
+  <div id="presentation-controls" hidden role="region" aria-label="Sunum kontrolleri">
+    <div class="presentation-copy"><span id="presentation-count">1 / 5</span><strong id="presentation-title">Merkez Ankara</strong><small id="presentation-description">Projenin genel görünümü</small></div>
+    <div class="presentation-actions"><button id="presentation-prev" type="button" aria-label="Önceki sahne">←</button><button id="presentation-next" type="button" aria-label="Sonraki sahne">→</button><button id="presentation-fullscreen" type="button">Tam ekran</button><button id="presentation-close" type="button">Sunumdan çık</button></div>
+  </div>
+
+  <dialog id="graphics-dialog" aria-labelledby="graphics-title">
+    <div class="graphics-head"><div><p class="graphics-eyebrow">GÖRÜNTÜ &amp; PERFORMANS</p><h2 id="graphics-title">Ayarlar</h2></div><button id="graphics-close" class="icon-btn" type="button" aria-label="Ayarları kapat">✕</button></div>
+    <div class="graphics-meter"><strong id="graphics-live-fps">Ölçülüyor…</strong><span id="graphics-resolution"></span></div>
+    <p class="graphics-section">Görüntü</p>
+    <form id="graphics-form">
+      <label class="graphics-row" for="graphics-preset"><span><b>Kalite profili</b><small>Tek seçimle görüntü ve hız dengesi.</small></span><select id="graphics-preset"><option value="custom">Özel</option><option value="performance">Yüksek FPS</option><option value="balanced">Dengeli</option><option value="quality">Yüksek Kalite</option></select></label>
+      <div class="graphics-slider"><label for="graphics-scale"><b>Çözünürlük ölçeği</b><output id="graphics-scale-value" for="graphics-scale">%100</output></label><input id="graphics-scale" name="scale" type="range" min="50" max="100" step="5"><small>Düşürmek FPS’yi artırabilir; 3B görüntü yumuşar. Menü ve yazı boyutları değişmez.</small></div>
+      <label class="graphics-row" for="graphics-adaptive"><span><b>Otomatik çözünürlük</b><small>Kamera hareketinde hedefe göre çözünürlüğü ayarlar.</small></span><input id="graphics-adaptive" name="adaptive" type="checkbox" role="switch"></label>
+      <label class="graphics-row" for="graphics-target"><span><b>Hedef FPS</b><small>Otomatik çözünürlük hedefidir; garanti değildir.</small></span><select id="graphics-target" name="target"><option>30</option><option>60</option><option>90</option><option>120</option><option>144</option></select></label>
+      <label class="graphics-row" for="graphics-glass"><span><b>Gerçekçi cam</b><small>Kapatmak camın kırılma efektini kaldırır ve çizim yükünü azaltır.</small></span><input id="graphics-glass" name="glass" type="checkbox" role="switch"></label>
+      <label class="graphics-row" for="graphics-reflections"><span><b>Ortam yansımaları</b><small>Kapatıldığında parlak yüzeyler daha mat görünür.</small></span><input id="graphics-reflections" name="reflections" type="checkbox" role="switch"></label>
+      <label class="graphics-row" for="graphics-limit"><span><b>FPS sınırı</b><small>Düşük sınır güç tüketimini azaltır. Sınırsız seçimi ekranın ulaşabildiği hıza kadar çıkar.</small></span><select id="graphics-limit" name="fpsLimit"><option value="0">Sınırsız</option><option>30</option><option>60</option><option>90</option><option>120</option><option>144</option></select></label>
+      <label class="graphics-row" for="graphics-fps"><span><b>FPS göstergesi</b><small>Sahnenin köşesinde performansı göster.</small></span><input id="graphics-fps" name="showFps" type="checkbox" role="switch"></label>
+    </form>
+    <p class="graphics-section">Işık</p>
+    <form id="lighting-form">
+      <div class="graphics-slider"><label for="light-exposure"><b>Genel parlaklık</b><output id="light-exposure-value" for="light-exposure">%100</output></label><input id="light-exposure" name="exposure" type="range" min="40" max="180" step="5" value="100"><small>Sahnenin genel pozlaması. Gündüz ve gece birlikte değişir.</small></div>
+      <div class="graphics-slider"><label for="light-hemi"><b>Ortam ışığı</b><output id="light-hemi-value" for="light-hemi">%100</output></label><input id="light-hemi" name="hemi" type="range" min="0" max="200" step="5" value="100"><small>Gök ve zemin dolgusunun şiddeti.</small></div>
+      <div class="graphics-slider"><label for="light-sun"><b>Güneş ışığı</b><output id="light-sun-value" for="light-sun">%100</output></label><input id="light-sun" name="sun" type="range" min="0" max="200" step="5" value="100"><small>Yönlü ana ışığın şiddeti.</small></div>
+      <div class="graphics-slider"><label for="light-env"><b>Yansıma şiddeti</b><output id="light-env-value" for="light-env">%100</output></label><input id="light-env" name="env" type="range" min="0" max="200" step="5" value="100"><small>Parlak yüzeylerdeki ortam yansıması.</small></div>
+      <div class="graphics-slider"><label for="light-lamps"><b>Gece lambaları</b><output id="light-lamps-value" for="light-lamps">%100</output></label><input id="light-lamps" name="lamps" type="range" min="0" max="2000" step="25" value="100"><small>Yalnızca gece: sarı ve mor ışıklar. %100 = normal, %2000 = 20 kat güç.</small></div>
+    </form>
+    <div class="graphics-foot"><p id="graphics-status" role="status">Değişiklikler anında uygulanır ve bu cihaza kaydedilir.</p><button id="graphics-reset" class="pill-btn" type="button">İlk ayarlara dön</button></div>
+  </dialog>
 
   <!-- Panel aç düğmesi (panel kapalıyken görünür) -->
   <button id="panel-toggle" class="pill-btn" type="button" aria-expanded="false">
@@ -142,13 +202,33 @@
   </aside>
 
   <!-- Sol alt: konum göstergesi -->
-  <div id="legend">
+  <button id="legend" type="button" title="Kiosk konumuna yaklaş">
     <span class="legend-dot"></span>
-    <span>Buradasınız</span>
-  </div>
+    <span>Şu an neredeyim?</span>
+  </button>
 
   <!-- Toast -->
   <div id="toast-container"></div>
+
+  <!-- Ana ekran: görsel önde, 3B model arkada hazırlanır -->
+  <div id="welcome">
+    <div class="welcome-language"><select data-language-select aria-label="Dil"></select></div>
+    <video class="welcome-photo" src="./assets/presentation/merkez-mevsimler.mp4?v=20261007" poster="./assets/presentation/merkez-poster.jpg" autoplay muted loop playsinline preload="metadata" aria-hidden="true"></video>
+    <aside class="welcome-note">
+      <p class="welcome-kicker">İç mekan yönlendirme</p>
+      <p class="welcome-note-title">Merkez Ankara</p>
+      <p class="welcome-note-text">Mağazanızı seçin, yolunuz avluda adım adım çizilsin.</p>
+    </aside>
+    <button id="plans-open" type="button">
+      <span class="plans-title">Keşfe başla</span>
+      <span class="plans-go" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M5 12h14"></path>
+          <path d="m13 6 6 6-6 6"></path>
+        </svg>
+      </span>
+    </button>
+  </div>
 
   <!-- Yükleme ekranı -->
   <div id="loading-overlay">
@@ -164,6 +244,6 @@
   <!-- Hata katmanı (geliştirme) -->
   <div id="error-overlay" class="hidden"></div>
 
-  <script type="module" src="./src/main.js"></script>
+  <script type="module" src="./src/main.js?v=analytics-languages1"></script>
 </body>
 </html>

@@ -34,6 +34,7 @@ export class LampSystem {
   #poleIM = null; #headIM = null; #capIM = null; #poolIM = null; #glowPoints = null;
   #fade = 0;              // 0 = sönük (gündüz), 1 = yanık (gece)
   #fadeTarget = 0;
+  #intensityScale = 1;
   #highlightId = null;
   #assignTimer = 0;
   #order = [];
@@ -141,6 +142,7 @@ export class LampSystem {
     // Editör raycast'i için işaret; instanceId -> lamba id çevirisi lampIdFromHit ile yapılır
     for (const im of [this.#poleIM, this.#headIM, this.#capIM]) {
       im.userData.lampLayer = true;
+      im.visible = new URLSearchParams(location.search).has('editor');
     }
 
     const glowPositions = new Float32Array(n * 3);
@@ -267,6 +269,13 @@ export class LampSystem {
     this.sm.pokeActivity();
   }
 
+  /** Ayarlar paneli: 1 = config şiddeti. Gece lambalarını anında ölçekler. */
+  setIntensityScale(scale) {
+    this.#intensityScale = scale;
+    this.#applyFade();
+    if (this.#fade > 0.01) this.#assignNearestLights();
+  }
+
   get pickMeshes() {
     return [this.#poleIM, this.#headIM, this.#capIM].filter(Boolean);
   }
@@ -306,7 +315,7 @@ export class LampSystem {
 
     const h = this.height;
     const nightVisible = this.#fade > 0.01;
-    const intensity = this.#fade * this.config.lamps.intensity;
+    const intensity = this.#fade * this.config.lamps.intensity * this.#intensityScale;
     const chosen = new Set();
     for (let k = 0; k < this.#lights.length; k++) {
       const lampI = this.#order[k];
@@ -331,9 +340,10 @@ export class LampSystem {
 
   #applyFade() {
     const f = this.#fade;
-    this.#headMat.emissiveIntensity = f * 2.2;
-    this.#glowMat.opacity = f * 0.85;
-    this.#poolMat.opacity = f * 0.75;
+    const gain = this.#intensityScale;
+    this.#headMat.emissiveIntensity = f * 2.2 * gain;
+    this.#glowMat.opacity = Math.min(1, f * 0.85 * gain);
+    this.#poolMat.opacity = Math.min(1, f * 0.75 * gain);
 
     // Gündüz: gece katmanları hiç çizilmesin, ışıklar shader'a girmesin
     const nightVisible = f > 0.01;
@@ -341,7 +351,7 @@ export class LampSystem {
     if (this.#glowPoints) this.#glowPoints.visible = nightVisible;
     for (const light of this.#lights) {
       light.visible = nightVisible;
-      light.intensity = f * this.config.lamps.intensity;
+      light.intensity = f * this.config.lamps.intensity * gain;
     }
   }
 }

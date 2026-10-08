@@ -1,0 +1,24 @@
+[data-language-select]{font:inherit;border:1px solid #deded3;border-radius:9px;background:#fffdf8;color:#424638;padding:9px 12px;min-height:40px;max-width:150px;cursor:pointer;direction:ltr}
+[data-language-select] option{direction:auto}
+[dir=rtl] body{font-family:'Segoe UI',Tahoma,Arial,sans-serif}
+[dir=rtl] .brand-text{text-align:right}
+[dir=rtl] #store-panel{left:auto;right:16px}
+[dir=rtl] #store-panel.collapsed{transform:translateX(calc(100% + 32px))}
+[dir=rtl] #panel-toggle{left:auto;right:16px}
+[dir=rtl] #legend{left:auto;right:16px}
+[dir=rtl] #promo-card{right:auto;left:18px}
+[dir=rtl] #info-card{direction:rtl}
+[dir=rtl] .card-close{right:auto;left:12px}
+[dir=rtl] .search-wrap input{padding-right:40px;padding-left:12px;text-align:right}
+[dir=rtl] .search-wrap>svg{left:auto;right:13px}
+[dir=rtl] .toolbar-menu-content{right:auto;left:0}
+[dir=rtl] #promo-track{direction:ltr}
+[dir=rtl] .promo-slide{direction:rtl;text-align:right}
+[dir=rtl] .step-icon{direction:ltr}
+.welcome-language{position:absolute;inset-block-start:25px;inset-inline-end:25px;z-index:4}
+.toolbar-menu-content .analytics-link{display:flex;align-items:center;justify-content:center;text-decoration:none}
+.toolbar-menu-content .analytics-link{grid-column:1/-1}
+[dir=rtl] body.panel-open #legend{left:auto;right:380px}
+@media(max-width:1100px){#topbar .brand-text h1{font-size:14px}#topbar .brand-text span{font-size:10px}#topbar .topbar-right{gap:7px}#topbar .pill-btn{padding-inline:12px;font-size:12px}#topbar #clock{font-size:16px}}
+@media(max-width:600px){#topbar{height:auto;min-height:72px;align-items:flex-start;padding:12px 10px}#topbar .topbar-right{flex-wrap:wrap;justify-content:flex-end;max-width:calc(100% - 48px)}#topbar .pill-btn{min-height:35px;font-size:11px;padding-inline:9px}#topbar [data-language-select]{min-height:35px;padding:5px;max-width:105px}#panel-toggle,#store-panel{top:110px}.toolbar-menu-content{max-height:calc(100dvh - 150px);width:min(280px,calc(100vw - 20px))}[dir=rtl] body.panel-open #legend{right:20px;bottom:85px}}
+@media(max-width:780px){[data-language-select]{max-width:115px;font-size:12px}[dir=rtl] #store-panel{right:8px}[dir=rtl] #promo-card{left:8px}}

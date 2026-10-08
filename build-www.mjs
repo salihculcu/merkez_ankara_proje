@@ -8,7 +8,14 @@ const ROOT = dirname(fileURLToPath(import.meta.url));
 const OUT = join(ROOT, 'www');
 
 // Kiosk icin gereken her sey; editor/sunucu dosyalari ve gelistirme artiklari haric.
-const ITEMS = ['index.html', 'styles', 'src', 'lib', 'assets'];
+const ITEMS = ['index.html', 'analytics.html', 'styles', 'src', 'lib', 'assets'];
+// Keep only assets referenced by the app. Source files remain untouched.
+const unusedModelAssets = new Set([
+  'MERKEZ_ANKARA_KAT_1_DENEME.glb',
+  'MERKEZ_ANKARA_KAT_1_DENEME_mobile.glb',
+  'LOCKED-OFF-STATIC-CAMERA-The-camera-mus.mp4',
+  'Avm_Gorseli.png',
+]);
 
 rmSync(OUT, { recursive: true, force: true });
 mkdirSync(OUT);
@@ -22,7 +29,7 @@ for (const item of ITEMS) {
   }
   cpSync(from, join(OUT, item), {
     recursive: true,
-    filter: (src) => !src.endsWith('.bak'), // graph.json.bak gibi yedekler APK'ya girmesin
+    filter: (src) => !src.endsWith('.bak') && !unusedModelAssets.has(src.split(/[\\/]/).pop()),
   });
   console.log(`kopyalandi: ${item}`);
 }

@@ -1,4 +1,5 @@
-import { STRINGS } from './config.js';
+import { STRINGS } from './config.js?v=languages1';
+import { t, getLocale } from './I18n.js';
 
 /**
  * DOM tarafı: mağaza listesi, arama, kategori filtreleri, bilgi kartı,
@@ -45,24 +46,36 @@ export class UIManager {
     this.#idleTimer = null;
   }
 
-  #el; #stores; #activeCategory; #selectedStoreId; #idleTimer;
+  #el; #stores; #activeCategory; #selectedStoreId; #idleTimer; #lastRouteInfo;
 
   /**
    * Mağaza listesini kurar. Liste, GLB'de bulunan hitbox kimlikleri ile
    * stores.json meta verisinin birleşimidir; meta eksikse kimlikten isim türetilir.
    */
   init(storesMeta, hitboxStoreIds) {
-    const ids = new Set([...hitboxStoreIds, ...Object.keys(storesMeta)]);
+    const ids = hitboxStoreIds.length
+      ? [...new Set(hitboxStoreIds)]
+      : Object.keys(storesMeta);
     this.#stores = [...ids].map((id) => ({
       id,
       name: storesMeta[id]?.name ?? this.#titleCase(id),
-      category: storesMeta[id]?.category ?? 'Diğer',
+      category: storesMeta[id]?.category ?? 'Mağaza',
       floor: storesMeta[id]?.floor ?? 1,
       inModel: hitboxStoreIds.includes(id),
     })).sort((a, b) => a.name.localeCompare(b.name, 'tr'));
 
     this.#buildChips();
     this.#renderList();
+
+    window.addEventListener('languagechange', () => {
+      this.#buildChips();this.#renderList();
+      if (this.#selectedStoreId && this.#lastRouteInfo && !this.#el.card.classList.contains('hidden')) {
+        const panelOpen = !this.#el.panel.classList.contains('collapsed');
+        this.showStoreCard(this.#selectedStoreId, this.#lastRouteInfo);
+        if (panelOpen) this.openPanel();
+      }
+      this.#el.clock.textContent = new Date().toLocaleTimeString(getLocale(), {hour:'2-digit',minute:'2-digit'});
+    });
 
     this.#el.panelToggle.addEventListener('click', () => this.openPanel());
     this.#el.panelClose.addEventListener('click', () => this.closePanel());
@@ -108,9 +121,9 @@ export class UIManager {
     const frag = document.createDocumentFragment();
 
     const all = this.#makeChip(STRINGS.allCategories, null);
-    all.classList.add('active');
+    all.classList.toggle('active', !this.#activeCategory);
     frag.appendChild(all);
-    for (const cat of categories) frag.appendChild(this.#makeChip(cat, cat));
+    for (const cat of categories) frag.appendChild(this.#makeChip(t(cat), cat));
 
     this.#el.chips.innerHTML = '';
     this.#el.chips.appendChild(frag);
@@ -119,6 +132,7 @@ export class UIManager {
   #makeChip(label, value) {
     const btn = document.createElement('button');
     btn.className = 'chip';
+    btn.classList.toggle('active', value === this.#activeCategory);
     btn.textContent = label;
     btn.addEventListener('click', () => {
       this.#activeCategory = value;
@@ -155,9 +169,9 @@ export class UIManager {
         <div class="store-avatar">${this.#escape(store.name.charAt(0).toUpperCase())}</div>
         <div class="store-info">
           <div class="store-name">${this.#escape(store.name)}</div>
-          <div class="store-cat">${this.#escape(store.category)}</div>
+          <div class="store-cat">${this.#escape(t(store.category))}</div>
         </div>
-        <div class="store-floor">K${store.floor}</div>`;
+        <div class="store-floor">${this.#escape(t('Kat {n}', {n:store.floor}))}</div>`;
       li.addEventListener('click', () => {
         this.bus.emit('storeSelected', { storeId: store.id, origin: 'ui' });
       });
@@ -179,12 +193,13 @@ export class UIManager {
   }
 
   showStoreCard(storeId, routeInfo) {
+    this.#lastRouteInfo = routeInfo;
     const store = this.getStore(storeId) ?? { name: this.#titleCase(storeId), category: '—', floor: 1 };
     this.#markSelected(storeId);
 
     this.#el.cardName.textContent = store.name;
-    this.#el.cardCategory.textContent = store.category;
-    this.#el.cardFloor.textContent = `Kat ${store.floor}`;
+    this.#el.cardCategory.textContent = t(store.category);
+    this.#el.cardFloor.textContent = t('Kat {n}', {n:store.floor});
 
     const { metersPerUnit, walkingSpeedMps } = this.config.units;
     const meters = routeInfo.distance * metersPerUnit;
@@ -244,7 +259,7 @@ export class UIManager {
 
     return legs.map((leg, i) => {
       const dist = `${Math.max(1, Math.round(leg.dist))} ${STRINGS.metersShort}`;
-      if (i === legs.length - 1) return { icon: 'arrive', dist, text: `${storeName} ${STRINGS.stepArriveSuffix}` };
+      if (i === legs.length - 1) return { icon: 'arrive', dist, text: t('{name} mağazasına ulaştınız', {name:storeName}) };
       if (i === 0 || leg.turn === 'straight') return { icon: 'straight', dist, text: STRINGS.stepStraight };
       return { icon: leg.turn, dist, text: leg.turn === 'right' ? STRINGS.stepRight : STRINGS.stepLeft };
     });
@@ -363,7 +378,7 @@ export class UIManager {
 
   #startClock() {
     const tick = () => {
-      this.#el.clock.textContent = new Date().toLocaleTimeString('tr-TR', {
+      this.#el.clock.textContent = new Date().toLocaleTimeString(getLocale(), {
         hour: '2-digit', minute: '2-digit',
       });
     };

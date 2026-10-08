@@ -7,10 +7,13 @@
 #              python server.py 8001     (farkli port)
 
 import json
+import mimetypes
 import os
 import shutil
 import sys
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
+
+mimetypes.add_type("video/mp4", ".mp4")
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 GRAPH_PATH = os.path.join(ROOT, "assets", "data", "graph.json")
@@ -50,7 +53,7 @@ class KioskHandler(SimpleHTTPRequestHandler):
     def end_headers(self):
         # Editor/kiosk gelistirme dongusunde JSON/JS hep taze gelsin
         path = self.path.split("?", 1)[0]
-        if path.endswith((".json", ".js", ".css")):
+        if path.endswith((".json", ".js", ".css", ".glb")):
             self.send_header("Cache-Control", "no-store")
         super().end_headers()
 

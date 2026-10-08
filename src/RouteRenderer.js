@@ -1,11 +1,10 @@
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
 /**
- * Hesaplanan yolu zeminden hafif yükseltilmiş, yumuşatılmış bir 3B tüp olarak çizer.
- * İki katman kullanılır:
- *  - taban tüp: düz renkli, rotanın gövdesi
- *  - ok tüpü: hafifçe daha geniş, kayan şerit dokusuyla yön akışı efekti
- * Ek olarak hedefte nabız atan bir pin, başlangıçta "Buradasınız" halkası gösterilir.
+ * Yolu zeminde ince bir iz ve üzerinde ileri akan, yanıp sönen oklar olarak çizer.
+ * Oklar CatmullRom eğrisi boyunca kayar; her biri kendi fazında parlar.
+ * Bina arkasında kalan kısımlar soluk hayalet olarak görünür.
  */
 export class RouteRenderer {
   constructor(sceneManager, config) {
@@ -17,13 +16,20 @@ export class RouteRenderer {
     sceneManager.scene.add(this.group);
 
     this.startMarker = null;
-    this.#arrowTexture = this.#createArrowTexture();
+    this.#chevronGeo = this.#createChevronGeometry();
     this.#disposables = [];
+    this.#arrows = [];
 
     sceneManager.onUpdate((dt, elapsed) => this.#update(dt, elapsed));
   }
 
-  #arrowTexture; #disposables; #arrowMaterial = null; #destPulse = null; #destPin = null; #pinBaseY = 0;
+  #chevronGeo; #disposables; #arrows;
+  #curve = null; #arrowScale = 1;
+  #destPulse = null; #destPin = null; #pinBaseY = 0;
+  #aimX = new THREE.Vector3();
+  #aimY = new THREE.Vector3();
+  #aimZ = new THREE.Vector3();
+  #aimM = new THREE.Matrix4();
 
   get radius() {
     const { radiusFactor, minRadius } = this.config.route;
@@ -38,58 +44,63 @@ export class RouteRenderer {
     const cfg = this.config.route;
     const radius = this.radius;
     const lifted = points.map((p) => new THREE.Vector3(p.x, p.y + cfg.yOffset, p.z));
-
     const curve = new THREE.CatmullRomCurve3(lifted, false, 'centripetal', 0.5);
     const length = curve.getLength();
-    const tubularSegments = THREE.MathUtils.clamp(Math.round(length / (radius * 0.5)), 32, 800);
+    if (length < 1e-4) return;
+    this.#curve = curve;
 
-    // Taban tüp: görünen kısım normal, bina arkasında kalan kısım soluk hayalet geçişiyle
-    const baseGeo = new THREE.TubeGeometry(curve, tubularSegments, radius, 10, false);
-    const baseMat = new THREE.MeshBasicMaterial({
+    const segments = THREE.MathUtils.clamp(Math.round(length / (radius * 0.85)), 24, 420);
+    const ribbonGeo = this.#buildRibbon(curve, radius * 0.42, segments);
+    const ribbonMat = new THREE.MeshBasicMaterial({
       color: cfg.baseColor,
       transparent: true,
       opacity: cfg.baseOpacity,
       depthWrite: false,
       depthTest: true,
+      side: THREE.DoubleSide,
     });
-    const baseTube = new THREE.Mesh(baseGeo, baseMat);
-    baseTube.renderOrder = 50;
-    this.group.add(baseTube);
-    if (this.sceneManager.perfProfile.routeGhosts !== false) {
-      this.group.add(this.#ghostOf(baseTube, cfg.occludedOpacity));
-    }
-    this.#disposables.push(baseGeo, baseMat);
+    const ribbon = new THREE.Mesh(ribbonGeo, ribbonMat);
+    ribbon.renderOrder = 50;
+    this.group.add(ribbon);
+    const ghosts = this.sceneManager.perfProfile.routeGhosts !== false;
+    if (ghosts) this.group.add(this.#ghostOf(ribbon, cfg.occludedOpacity));
+    this.#disposables.push(ribbonGeo, ribbonMat);
 
-    // Akış okları
-    const arrowGeo = new THREE.TubeGeometry(curve, tubularSegments, radius * 1.06, 10, false);
-    const arrowCount = Math.max(2, Math.round(length / (radius * cfg.arrowSpacingRadii)));
-    const arrowMap = this.#arrowTexture.clone();
-    arrowMap.repeat.set(arrowCount, 1);
-    const arrowMat = new THREE.MeshBasicMaterial({
-      map: arrowMap,
-      transparent: true,
-      depthWrite: false,
-      depthTest: true,
-      blending: THREE.AdditiveBlending,
-    });
-    const arrowTube = new THREE.Mesh(arrowGeo, arrowMat);
-    arrowTube.renderOrder = 51;
-    this.group.add(arrowTube);
-    if (this.sceneManager.perfProfile.routeGhosts !== false) {
-      this.group.add(this.#ghostOf(arrowTube, cfg.occludedOpacity));
+    const spacing = Math.max(radius * (cfg.arrowSpacingRadii ?? 22), radius * 8);
+    const count = THREE.MathUtils.clamp(Math.round(length / spacing), 3, 14);
+    this.#arrowScale = radius * (cfg.arrowScale ?? 5.2);
+
+    for (let i = 0; i < count; i++) {
+      const mat = new THREE.MeshBasicMaterial({
+        color: cfg.arrowColor ?? 0xffe2b8,
+        transparent: true,
+        opacity: 1,
+        depthWrite: false,
+        depthTest: true,
+        side: THREE.DoubleSide,
+      });
+      const mesh = new THREE.Mesh(this.#chevronGeo, mat);
+      mesh.renderOrder = 51;
+      const rig = new THREE.Group();
+      rig.add(mesh);
+      let ghostMat = null;
+      if (ghosts) {
+        const ghost = this.#ghostOf(mesh, cfg.occludedOpacity);
+        rig.add(ghost);
+        ghostMat = ghost.material;
+      }
+      rig.scale.setScalar(this.#arrowScale);
+      this.group.add(rig);
+      this.#disposables.push(mat);
+      this.#arrows.push({ rig, mat, ghostMat, phase: i / count });
     }
-    this.#disposables.push(arrowGeo, arrowMat, arrowMat.map);
-    this.#arrowMaterial = arrowMat;
 
     this.#buildDestinationMarker(lifted[lifted.length - 1], radius);
     this.sceneManager.pokeActivity();
   }
 
   /**
-   * Kesilme (occlusion) hayaleti: aynı geometriyi ters derinlik testiyle
-   * (GreaterDepth) yeniden çizer — yalnızca kamera ile arasına GLB giren
-   * bölgede görünür ve orayı soluk gösterir. Doku referansı paylaşıldığı
-   * için ok akış animasyonu hayalette de aynı anda oynar.
+   * Kesilme hayaleti: aynı geometri, GreaterDepth — yalnızca GLB arkasında soluk görünür.
    */
   #ghostOf(mesh, opacity) {
     const mat = mesh.material.clone();
@@ -102,6 +113,66 @@ export class RouteRenderer {
     ghost.renderOrder = mesh.renderOrder - 2;
     this.#disposables.push(mat);
     return ghost;
+  }
+
+  #buildRibbon(curve, halfWidth, segments) {
+    const positions = [];
+    const indices = [];
+    const up = new THREE.Vector3(0, 1, 0);
+    const side = new THREE.Vector3();
+    const tan = new THREE.Vector3();
+    for (let i = 0; i <= segments; i++) {
+      const p = curve.getPointAt(i / segments);
+      curve.getTangentAt(i / segments, tan);
+      side.crossVectors(Math.abs(tan.y) > 0.85 ? new THREE.Vector3(1, 0, 0) : up, tan);
+      if (side.lengthSq() < 1e-8) side.set(1, 0, 0);
+      side.normalize().multiplyScalar(halfWidth);
+      positions.push(p.x - side.x, p.y + 0.01, p.z - side.z);
+      positions.push(p.x + side.x, p.y + 0.01, p.z + side.z);
+    }
+    for (let i = 0; i < segments; i++) {
+      const a = i * 2;
+      indices.push(a, a + 1, a + 2, a + 1, a + 3, a + 2);
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+    geo.setIndex(indices);
+    return geo;
+  }
+
+  /** Yere yatırılmış çift şerit ok (»). +Z ileri bakar. */
+  #createChevronGeometry() {
+    const make = (shift) => {
+      const shape = new THREE.Shape();
+      const y = shift;
+      shape.moveTo(0, 0.5 + y);
+      shape.lineTo(0.2, -0.08 + y);
+      shape.lineTo(0.08, -0.08 + y);
+      shape.lineTo(0, 0.14 + y);
+      shape.lineTo(-0.08, -0.08 + y);
+      shape.lineTo(-0.2, -0.08 + y);
+      shape.closePath();
+      const geo = new THREE.ShapeGeometry(shape);
+      // +X dönüşü: şeklin +Y ucu yerel +Z olur (yolun gidiş yönü).
+      geo.rotateX(Math.PI / 2);
+      return geo;
+    };
+    const geo = mergeGeometries([make(0.22), make(-0.34)]);
+    geo.translate(0, 0.03, 0);
+    return geo;
+  }
+
+  #aim(rig, tangent) {
+    this.#aimZ.copy(tangent);
+    if (this.#aimZ.lengthSq() < 1e-8) return;
+    this.#aimZ.normalize();
+    const ref = Math.abs(this.#aimZ.y) > 0.92
+      ? this.#aimX.set(1, 0, 0)
+      : this.#aimX.set(0, 1, 0);
+    this.#aimX.crossVectors(ref, this.#aimZ).normalize();
+    this.#aimY.crossVectors(this.#aimZ, this.#aimX).normalize();
+    this.#aimM.makeBasis(this.#aimX, this.#aimY, this.#aimZ);
+    rig.quaternion.setFromRotationMatrix(this.#aimM);
   }
 
   #buildDestinationMarker(pos, radius) {
@@ -121,7 +192,6 @@ export class RouteRenderer {
     this.#disposables.push(ringGeo, ringMat);
     this.#destPulse = ring;
 
-    // Baş aşağı koni + üstünde küre: klasik harita pini
     const pin = new THREE.Group();
     const coneGeo = new THREE.ConeGeometry(s * 0.42, s * 1.5, 20);
     coneGeo.rotateX(Math.PI);
@@ -177,7 +247,8 @@ export class RouteRenderer {
   }
 
   clear() {
-    this.#arrowMaterial = null;
+    this.#curve = null;
+    this.#arrows = [];
     this.#destPulse = null;
     this.#destPin = null;
     this.group.clear();
@@ -188,9 +259,25 @@ export class RouteRenderer {
   get hasRoute() { return this.group.children.length > 0; }
 
   #update(dt, elapsed) {
-    if (this.#arrowMaterial) {
-      // offset azaldıkça desen +u yönünde (hedefe doğru) akar
-      this.#arrowMaterial.map.offset.x -= this.config.route.flowSpeed * dt;
+    const cfg = this.config.route;
+    if (this.#curve && this.#arrows.length) {
+      const speed = cfg.flowSpeed ?? 0.22;
+      const pulse = cfg.arrowPulse ?? 3.4;
+      for (const arrow of this.#arrows) {
+        let u = (elapsed * speed + arrow.phase) % 1;
+        if (u < 0) u += 1;
+        const pos = this.#curve.getPointAt(u);
+        const tan = this.#curve.getTangentAt(u);
+        arrow.rig.position.copy(pos);
+        this.#aim(arrow.rig, tan);
+        const blink = 0.5 + 0.5 * Math.sin(elapsed * pulse + arrow.phase * Math.PI * 2);
+        const edge = Math.min(1, u * 7, (1 - u) * 7);
+        const opacity = (0.4 + 0.6 * blink) * edge;
+        arrow.mat.opacity = opacity;
+        if (arrow.ghostMat) arrow.ghostMat.opacity = opacity * (cfg.occludedOpacity ?? 0.28);
+        const sc = this.#arrowScale * (0.9 + 0.14 * blink);
+        arrow.rig.scale.setScalar(sc);
+      }
     }
     if (this.#destPulse) {
       const k = 1 + 0.18 * Math.sin(elapsed * 4);
@@ -209,30 +296,5 @@ export class RouteRenderer {
         ring.material.opacity = 0.85 - 0.5 * (0.5 + 0.5 * Math.sin(elapsed * 2.2));
       }
     }
-  }
-
-  /** Tüp yüzeyinde +u yönünü gösteren şerit (chevron) dokusu üretir. */
-  #createArrowTexture() {
-    const w = 128, h = 64;
-    const canvas = document.createElement('canvas');
-    canvas.width = w; canvas.height = h;
-    const ctx = canvas.getContext('2d');
-    ctx.clearRect(0, 0, w, h);
-    ctx.strokeStyle = 'rgba(255,255,255,0.95)';
-    ctx.lineWidth = 13;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    ctx.beginPath();
-    ctx.moveTo(w * 0.30, h * 0.14);
-    ctx.lineTo(w * 0.62, h * 0.5);
-    ctx.lineTo(w * 0.30, h * 0.86);
-    ctx.stroke();
-
-    const tex = new THREE.CanvasTexture(canvas);
-    tex.colorSpace = THREE.SRGBColorSpace;
-    tex.wrapS = THREE.RepeatWrapping;
-    tex.wrapT = THREE.ClampToEdgeWrapping;
-    tex.anisotropy = 4;
-    return tex;
   }
 }

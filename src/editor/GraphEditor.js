@@ -36,7 +36,7 @@ export class GraphEditor {
   #nodeMeshes; #edgeObjects; #drag; #saveTimer; #el = {};
   #layer; #gridHelper; #nodeGeo; #materials; #selectedMat;
 
-  get nodeRadius() { return Math.max(0.08, this.sm.sceneScale * 0.006); }
+  get nodeRadius() { return Math.max(0.05, this.sm.sceneScale * 0.0024); }
 
   async init(storeIds) {
     this.storeIds = storeIds;
@@ -46,24 +46,39 @@ export class GraphEditor {
     this.#layer.name = 'EDITOR_LAYER';
     this.sm.scene.add(this.#layer);
 
-    this.#nodeGeo = new THREE.SphereGeometry(this.nodeRadius, 20, 16);
+    this.#nodeGeo = new THREE.SphereGeometry(this.nodeRadius, 24, 18);
     this.#materials = Object.fromEntries(
       Object.entries(this.config.editor.nodeColors)
-        .map(([type, color]) => [type, new THREE.MeshBasicMaterial({ color })]),
+        .map(([type, color]) => [type, new THREE.MeshStandardMaterial({
+          color,
+          roughness: 0.38,
+          metalness: 0.06,
+          emissive: color,
+          emissiveIntensity: 0.22,
+        })]),
     );
-    this.#selectedMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+    this.#selectedMat = new THREE.MeshStandardMaterial({
+      color: 0xffffff,
+      roughness: 0.32,
+      metalness: 0.04,
+      emissive: 0xffffff,
+      emissiveIntensity: 0.18,
+    });
 
     this.#buildGrid();
     this.sm.setHitboxDebug(true);
 
     await this.#loadInitialGraph();
+    this.#snapKioskToAnchor();
     this.#buildPanel();
     this.#bindPointerEvents();
     this.#bindKeyboard();
     this.#rebuildVisuals();
     this.#commit(false);
 
-    this.#setStatus('Editör hazır. Önce "Kiosk" tipinde başlangıç noktasını yerleştirin.');
+    this.#setStatus(this.sm.kioskAnchor
+      ? 'Kiosk noktası KIOSK_OUTDOOR üzerine alındı. Yol noktalarını ekleyebilirsiniz.'
+      : 'Editör hazır. Önce "Kiosk" tipinde başlangıç noktasını yerleştirin.');
   }
 
   // ---------------- Yükleme / kalıcılık ----------------
@@ -90,6 +105,23 @@ export class GraphEditor {
     if (fileGraph) this.graph = this.#normalize(fileGraph);
   }
 
+  /** Modeldeki KIOSK_OUTDOOR, kayıtlı grafın kiosk düğümünün önüne geçer. */
+  #snapKioskToAnchor() {
+    const anchor = this.sm.kioskAnchor;
+    if (!anchor) return;
+    const id = this.config.graph.kioskNodeId;
+    const pos = [anchor.x, anchor.y, anchor.z].map((n) => Math.round(n * 1000) / 1000);
+    let node = this.graph.nodes.find((n) => n.id === id || n.type === 'kiosk');
+    if (!node) {
+      this.graph.nodes.unshift({ id, type: 'kiosk', floor: 1, pos });
+      return;
+    }
+    node.id = id;
+    node.type = 'kiosk';
+    node.floor = node.floor ?? 1;
+    node.pos = pos;
+  }
+
   #normalize(g) {
     return {
       version: g.version ?? 1,
@@ -113,7 +145,6 @@ export class GraphEditor {
     this.engine.setGraph(this.graph);
     this.#rebuildVisuals();
     this.lampSystem.setLamps(this.graph.lamps);
-    this.storeMarkers.setMarkers(this.graph.storeMarkers);
     this.#refreshStats();
     if (autosave) this.#scheduleAutosave();
   }
@@ -149,8 +180,8 @@ export class GraphEditor {
     mesh.position.set(node.pos[0], node.pos[1] + this.nodeRadius, node.pos[2]);
     mesh.userData.nodeId = node.id;
     mesh.renderOrder = 60;
-    if (node.type === 'kiosk') mesh.scale.setScalar(1.5);
-    if (node.type === 'door') mesh.scale.setScalar(1.25);
+    if (node.type === 'kiosk') mesh.scale.setScalar(1.18);
+    if (node.type === 'door') mesh.scale.setScalar(1.08);
     this.#layer.add(mesh);
     this.#nodeMeshes.set(node.id, mesh);
   }
@@ -553,10 +584,10 @@ export class GraphEditor {
     const panel = document.createElement('div');
     panel.id = 'editor-panel';
     panel.innerHTML = `
-      <h3>GRAF EDİTÖRÜ</h3>
+      <h3>YÖNLENDİRME EDİTÖRÜ</h3>
 
       <div class="ed-section">
-        <label>Mod</label>
+        <h4>1 · Çalışma aracı</h4>
         <div class="ed-modes">
           <button class="ed-mode-btn active" data-mode="select">Seç / Taşı</button>
           <button class="ed-mode-btn" data-mode="addNode">Nokta Ekle</button>
@@ -570,6 +601,7 @@ export class GraphEditor {
       </div>
 
       <div class="ed-section" id="ed-node-opts">
+        <h4>2 · Nokta ayarları</h4>
         <label>Nokta Tipi</label>
         <select id="ed-node-type">
           <option value="waypoint">Yürüyüş noktası (waypoint)</option>
@@ -588,6 +620,7 @@ export class GraphEditor {
       </div>
 
       <div class="ed-section" id="ed-edge-opts">
+        <h4>3 · Bağlantı ayarları</h4>
         <label>Kenar Tipi</label>
         <select id="ed-edge-type">
           <option value="walk">Yürüyüş (walk)</option>
@@ -602,38 +635,27 @@ export class GraphEditor {
       </div>
 
       <div class="ed-section">
-        <label>Mağaza Konum İmleci</label>
-        <select id="ed-marker-store">${storeOptions}</select>
-        <div class="ed-row">
-          <button class="ed-btn" id="ed-marker-upload">Logo Yükle</button>
-          <button class="ed-btn danger" id="ed-marker-clear">Logoyu Sil</button>
-        </div>
-        <div class="ed-row">
-          <label class="inline"><input type="checkbox" id="ed-marker-auto" checked> Otomatik renk (logodan)</label>
-          <input type="color" id="ed-marker-color" value="${this.config.storeMarkers.defaultColor}" title="Elle pin rengi">
-        </div>
-        <input type="file" id="ed-marker-file" accept="image/*" style="display:none">
-      </div>
-
-      <div class="ed-section">
-        <label>Seçim</label>
+        <h4>Seçili öğe</h4>
         <div id="ed-selection-info">Seçim yok.</div>
         <button class="ed-btn danger" id="ed-delete-selected">Seçiliyi Sil (Delete)</button>
       </div>
 
       <div class="ed-section">
+        <h4>Rota kontrolü</h4>
         <div class="ed-row">
           <label class="inline"><input type="checkbox" id="ed-a11y-test"> Engelsiz test</label>
           <button class="ed-btn" id="ed-clear-route">Test Rotasını Temizle</button>
         </div>
       </div>
 
-      <div class="ed-section">
+      <details class="ed-section ed-fold" open>
+        <summary>Durum ve uyarılar</summary>
         <div id="ed-counts"></div>
         <div id="ed-warnings"></div>
-      </div>
+      </details>
 
-      <div class="ed-section">
+      <details class="ed-section ed-fold">
+        <summary>Kaydetme ve veri işlemleri</summary>
         <button class="ed-btn primary" id="ed-save">Kaydet (graph.json'a yaz)</button>
         <div class="ed-row">
           <button class="ed-btn" id="ed-download">İndir</button>
@@ -642,7 +664,7 @@ export class GraphEditor {
         </div>
         <button class="ed-btn danger" id="ed-reset">Sıfırla (tümünü sil, dosyayı boşalt)</button>
         <input type="file" id="ed-file" accept=".json,application/json" style="display:none">
-      </div>
+      </details>
 
       <div style="font-size:11.5px;color:var(--text-dim)">
         Kısayollar: Delete sil · Esc zinciri bırak · H hitbox · G ızgara · 2 kuş bakışı
@@ -664,13 +686,7 @@ export class GraphEditor {
       warnings: panel.querySelector('#ed-warnings'),
       a11yTest: panel.querySelector('#ed-a11y-test'),
       file: panel.querySelector('#ed-file'),
-      markerStore: panel.querySelector('#ed-marker-store'),
-      markerAuto: panel.querySelector('#ed-marker-auto'),
-      markerColor: panel.querySelector('#ed-marker-color'),
-      markerFile: panel.querySelector('#ed-marker-file'),
     };
-
-    this.#bindMarkerControls(panel);
 
     panel.querySelectorAll('.ed-mode-btn').forEach((btn) => {
       btn.addEventListener('click', () => this.#setMode(btn.dataset.mode, btn));
@@ -738,100 +754,6 @@ export class GraphEditor {
       this.#commit(false);
       await this.#saveToServer('Graf sıfırlandı ve graph.json boşaltıldı.');
     });
-  }
-
-  // ---------------- Mağaza konum imleci düzenleme ----------------
-
-  #bindMarkerControls(panel) {
-    const el = this.#el;
-
-    const currentEntry = () => {
-      const id = el.markerStore.value;
-      const m = this.graph.storeMarkers;
-      if (!m[id]) m[id] = { logo: null, color: null };
-      return [id, m[id]];
-    };
-
-    // Ne logo ne elle renk kaldıysa kaydı temizle (varsayılan pin kullanılır)
-    const prune = (id) => {
-      const e = this.graph.storeMarkers[id];
-      if (e && !e.logo && !e.color) delete this.graph.storeMarkers[id];
-    };
-
-    el.markerStore.addEventListener('change', () => this.#syncMarkerControls());
-
-    panel.querySelector('#ed-marker-upload').addEventListener('click', () => el.markerFile.click());
-    el.markerFile.addEventListener('change', async () => {
-      const file = el.markerFile.files[0];
-      el.markerFile.value = '';
-      if (!file) return;
-      const [id, entry] = currentEntry();
-      try {
-        entry.logo = await this.#fileToLogoDataUrl(file);
-        this.#commit();
-        this.#setStatus(`${id} logosu yüklendi${entry.color ? '' : ' — pin rengi logodan alınacak'}.`);
-      } catch (err) {
-        this.#setStatus(`Görsel okunamadı: ${err.message ?? err}`);
-      }
-    });
-
-    panel.querySelector('#ed-marker-clear').addEventListener('click', () => {
-      const [id, entry] = currentEntry();
-      if (!entry.logo) { this.#setStatus(`${id} için yüklü logo yok.`); prune(id); return; }
-      entry.logo = null;
-      prune(id);
-      this.#commit();
-      this.#setStatus(`${id} logosu silindi — pinde baş harf gösterilir.`);
-    });
-
-    el.markerAuto.addEventListener('change', () => {
-      const [id, entry] = currentEntry();
-      entry.color = el.markerAuto.checked ? null : el.markerColor.value;
-      prune(id);
-      this.#commit();
-      this.#setStatus(el.markerAuto.checked
-        ? `${id}: pin rengi otomatik (logodaki baskın renk).`
-        : `${id}: pin rengi elle atandı (${el.markerColor.value}).`);
-    });
-
-    el.markerColor.addEventListener('input', () => {
-      const [, entry] = currentEntry();
-      el.markerAuto.checked = false;
-      entry.color = el.markerColor.value;
-      this.#commit();
-    });
-
-    this.#syncMarkerControls();
-  }
-
-  /** Seçili mağazanın kayıtlı imleç ayarlarını form kontrollerine yansıtır. */
-  #syncMarkerControls() {
-    const entry = this.graph.storeMarkers[this.#el.markerStore.value];
-    this.#el.markerAuto.checked = !entry?.color;
-    if (entry?.color) this.#el.markerColor.value = entry.color;
-  }
-
-  /** Yüklenen görseli kare kırpıp 128px'e küçültür; data-URL graph.json'da saklanır. */
-  async #fileToLogoDataUrl(file) {
-    const url = URL.createObjectURL(file);
-    try {
-      const img = await new Promise((resolve, reject) => {
-        const i = new Image();
-        i.onload = () => resolve(i);
-        i.onerror = () => reject(new Error('geçersiz görsel'));
-        i.src = url;
-      });
-      const S = 128;
-      const canvas = document.createElement('canvas');
-      canvas.width = canvas.height = S;
-      const ctx = canvas.getContext('2d');
-      const scale = Math.max(S / img.width, S / img.height);
-      const w = img.width * scale, h = img.height * scale;
-      ctx.drawImage(img, (S - w) / 2, (S - h) / 2, w, h);
-      return canvas.toDataURL('image/png');
-    } finally {
-      URL.revokeObjectURL(url);
-    }
   }
 
   // ---------------- 2B kuş bakışı görünümü ----------------

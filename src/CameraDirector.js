@@ -15,6 +15,7 @@ export class CameraDirector {
     sceneManager.controls.addEventListener('start', () => {
       this.#tween = null;
       sceneManager.cameraBusy = false;
+      sceneManager.setFloorVisibility(this.activeFloor);
       sceneManager.pokeActivity();
     });
     sceneManager.onUpdate(() => this.#update());
@@ -26,8 +27,15 @@ export class CameraDirector {
 
   /** Model yüklendikten sonra çağrılır: home görünümünü hesaplar ve anında uygular. */
   setHomeFromBounds(bounds) {
+    this.#applyHome(bounds.getCenter(new THREE.Vector3()), bounds, true);
+  }
+
+  #applyHome(center, bounds, useOffset) {
     const cam = this.config.camera;
-    const center = bounds.getCenter(new THREE.Vector3());
+    if (useOffset && cam.homeTargetOffset) {
+      const off = cam.homeTargetOffset;
+      center.add(new THREE.Vector3(off.x || 0, off.y || 0, off.z || 0));
+    }
     // Küre yarıçapı peyzaj/otopark uçlarını abartır; yatay ayak izi kiosk kadrajına daha yakın.
     const size = bounds.getSize(new THREE.Vector3());
     const radius = Math.max(size.x, size.z) * 0.5;
@@ -48,8 +56,9 @@ export class CameraDirector {
   }
 
   /** Rota noktalarını kadrajlar; mevcut bakış azimutu korunur. */
-  frameRoute(points) {
+  frameRoute(points, storeId = null) {
     if (!points || points.length === 0) return;
+    this.sceneManager.setNavigationView(points, storeId);
     const cam = this.config.camera;
 
     const box = new THREE.Box3().setFromPoints(points);
@@ -92,6 +101,7 @@ export class CameraDirector {
     const delta = nextOffset - this.#floorYOffset;
     this.#floorYOffset = nextOffset;
     this.activeFloor = next;
+    this.sceneManager.setFloorVisibility(next, true);
 
     const { camera, controls } = this.sceneManager;
     const position = camera.position.clone();
@@ -102,6 +112,7 @@ export class CameraDirector {
   }
 
   goHome(instant = false) {
+    this.sceneManager.setNavigationView(false);
     if (!this.#home) return;
 
     let { position, target } = this.#home;
@@ -118,9 +129,51 @@ export class CameraDirector {
       this.sceneManager.camera.position.copy(position);
       this.sceneManager.controls.target.copy(target);
       this.sceneManager.controls.update();
+      this.sceneManager.setFloorVisibility(this.activeFloor);
       return;
     }
     this.#startTween(position, target, this.config.camera.homeMs);
+  }
+
+  focusKiosk() {
+    const sm = this.sceneManager;
+    if (!sm.kioskAnchor) return;
+    sm.setTopView(false);
+    document.getElementById('view2d-toggle')?.setAttribute('aria-pressed', 'false');
+    this.activeFloor = 1;
+    this.#floorYOffset = 0;
+    const floorButton = document.getElementById('floor-toggle');
+    if (floorButton) { floorButton.textContent = 'Kat -1'; floorButton.setAttribute('aria-pressed', 'false'); }
+    const floorLabel = document.getElementById('floor-label');
+    if (floorLabel) floorLabel.textContent = 'Kat 1 — Etkileşimli Yönlendirme';
+    sm.setFloorVisibility(1);
+    sm.setNavigationView([sm.kioskAnchor]);
+    // Close oblique courtyard view, with the kiosk in the near foreground.
+    const target = sm.kioskAnchor.clone().add(new THREE.Vector3(-14, 0, -4));
+    const offset = new THREE.Vector3(42, 60, -8);
+    offset.multiplyScalar(Math.max(1, Math.min(1.4, 1 / sm.camera.aspect)));
+    sm.controls.minDistance = 12;
+    this.#startTween(target.clone().add(offset), target, 1200);
+  }
+
+  /** Curated presentation angle; keeps navigation and floor state consistent. */
+  showPresentationAngle(targetOffset, cameraOffset) {
+    const sm = this.sceneManager;
+    if (!sm.kioskAnchor) return;
+    sm.setNavigationView(null);
+    sm.setTopView(false);
+    document.getElementById('view2d-toggle')?.setAttribute('aria-pressed', 'false');
+    this.activeFloor = 1;
+    this.#floorYOffset = 0;
+    sm.setFloorVisibility(1);
+    const floorButton = document.getElementById('floor-toggle');
+    if (floorButton) { floorButton.textContent = 'Kat -1'; floorButton.setAttribute('aria-pressed', 'false'); }
+    const label = document.getElementById('floor-label');
+    if (label) label.textContent = 'Kat 1 — Etkileşimli Yönlendirme';
+    const target = sm.kioskAnchor.clone().add(new THREE.Vector3(...targetOffset));
+    const position = target.clone().add(new THREE.Vector3(...cameraOffset));
+    sm.controls.minDistance = 12;
+    this.#startTween(position, target, 1400);
   }
 
   #fitDistance(radius) {
@@ -136,6 +189,7 @@ export class CameraDirector {
 
   #startTween(toPosition, toTarget, duration) {
     const { camera, controls } = this.sceneManager;
+    controls._zoomInertia = 0;
     this.sceneManager.cameraBusy = true;
     this.sceneManager.pokeActivity();
     this.#tween = {
@@ -160,6 +214,7 @@ export class CameraDirector {
     if (raw >= 1) {
       this.#tween = null;
       this.sceneManager.cameraBusy = false;
+      this.sceneManager.setFloorVisibility(this.activeFloor);
       this.sceneManager.pokeActivity();
     }
   }

@@ -75,6 +75,26 @@ export class PathfindingEngine {
 
   hasKioskNode() { return this.#nodesById.has(this.config.graph.kioskNodeId); }
 
+  /**
+   * KIOSK_OUTDOOR dünya konumunu başlangıç düğümüne yazar.
+   * Düğüm yoksa oluşturur; varsa yalnızca yerini günceller (kenarlar aynı id'de kalır).
+   */
+  placeKiosk(position) {
+    const id = this.config.graph.kioskNodeId;
+    const pos = [position.x, position.y, position.z].map((n) => Math.round(n * 1000) / 1000);
+    let node = this.graph.nodes.find((n) => n.id === id);
+    if (!node) {
+      node = { id, type: 'kiosk', floor: 1, pos };
+      this.graph.nodes.unshift(node);
+    } else {
+      node.type = 'kiosk';
+      node.floor = node.floor ?? 1;
+      node.pos = pos;
+    }
+    this.#buildIndex();
+    return node;
+  }
+
   getNode(id) { return this.#nodesById.get(id) ?? null; }
 
   findDoorForStore(storeId) {

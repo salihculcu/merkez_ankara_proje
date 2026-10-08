@@ -123,3 +123,29 @@ npx @gltf-transform/cli draco _tmp.glb MERKEZ_ANKARA_KAT_1_DENEME_mobile.glb
 kenar tipleri ve `oneWay` desteği vardır. İkinci kat eklendiğinde aynı GLB'ye kat mesh'leri,
 grafiğe de `ELEV_A_F1 ↔ ELEV_A_F2` gibi kenarlar eklemek yeterlidir; engelsiz mod filtresi
 merdiven/yürüyen merdiveni otomatik eler.
+
+
+## 7 Ekim 2026 performans güncellemesi
+
+- Aktif model `assets/models/MERKEZ_ANKARA_WEB_OPTIMIZED.glb`: 188.450 üçgen, 12,95 MB. Yalnızca 38 yazı mesh'i geometrik olarak sadeleştirildi; bina/peyzaj geometrisi ve mağaza kimlikleri korundu. Kaynak GLB dosyaları saklandı ve yükleme hatasında ana kaynak modele dönüş var.
+- Meshopt çözücüsü `lib/jsm/libs/meshopt_decoder.module.js` içinde yerel; internet/CDN gerektirmez.
+- Kat -1 kopyası, donmuş dünya matrisleri nedeniyle ana katla üst üste çiziliyordu. Matrisleri konumlandırma sırasında güncelleniyor; geçiş dışındaki karelerde yalnızca seçili kat çiziliyor.
+- Statik birleştirme artık yakın opak nesnelerde, aynı malzeme ve uyumlu vertex alanlarıyla sınırlı. Mağaza hitbox'ları, saydam/transmission malzemeleri, aynalı ve instanced nesneler korunuyor. Paylaşılan geometriler başka bir nesne kullanıyorsa serbest bırakılmıyor.
+- Doğrulama: `npm run test:perf` (Node 22). Kat görünürlüğü, kök dönüşümleri, mağaza seçimini koruma ve bölgesel gruplama için dört test.
+- Yerel 1280×720, DPR 1 kontrolünde başlangıç kadrajında çizim çağrıları 1.684 → 722; çoklu render geçişleri dahil üçgenler 2.699.860 → 379.578. Sayaçta yaklaşık 160–165 FPS gözlendi; cihaz, kadraj, ekran çözünürlüğü ve editör modu sonucu değiştirir. Masaüstü çözünürlük/ışık ayarları düşürülmedi.
+- Boyner rotası, 38 mağaza eşleşmesi, kat geçişleri, 2B/gece görünümü ve editör açılışı kontrol edildi. Mobil profil masaüstünde zorlanarak açıldı; gerçek tablet FPS testi değildir.
+- Bu değişiklikler kaynak web uygulamasına uygulanmıştır. APK/www dağıtımı için normal `build:www` ve `android:sync` adımları ayrıca çalıştırılmalıdır.
+
+## Grafik ayarları
+
+Sağ üstteki **Ayarlar** düğmesi oyun benzeri görüntü panelini açar. Yüksek FPS, Dengeli ve Yüksek Kalite profilleri; %50–100 çözünürlük, otomatik çözünürlük/hedef FPS, gerçekçi cam, ortam yansımaları, FPS sınırı ve gösterge seçenekleri anında uygulanır. Seçimler bu tarayıcıda saklanır; İlk ayarlara dön düğmesi başlangıç görünümünü geri getirir. FPS hedefi garanti değildir; ekran yenileme hızı ve donanım sınırları geçerlidir. Düşük çözünürlük görüntüyü yumuşatır, cam/yansıma kapatmak malzeme görünümünü değiştirir. Model geometrisi ve mağaza kimlikleri bu ayarlardan etkilenmez.
+
+## Modeldeki gece ampulleri
+
+Adında ayrı kelime olarak `isik` / `ışık` geçen 32 model parçası gece sıcak sarı (#ffbc55) emisyon alır; gündüz özgün emisyon geri yüklenir. Malzemeler birleştirmeden önce ayrıldığı için aynı malzemeyi kullanan diğer nesneler etkilenmez. Yumuşak parlama ve zeminde ışık lekeleri toplu çizilir. Kameranın görüşündeki en yakın ampullere masaüstünde en fazla dört, tablette cihaz profiline göre sınırlı gölgesiz gerçek ışık atanır. Kat kopyasının ışık katmanı görünür kata uyar. Bunlar web sahnesi değişiklikleridir; Blender kaynağı değiştirilmez.
+
+## 7 Ekim 2026 — cam mekân ve kolon güncellemesi
+
+`Merkez_Ankara_Web_Yuksek_FPS.blend` dosyasının 17:23 kaydı yeniden dışa aktarıldı. 37 ek nesne dahil tüm adlar, mesh adları ve dönüşümler doğrulandı; 38 HITBOX korundu. Geometri sadeleştirilmedi: yeni kolonlar zaten 12 üçgen. Eşdeğer malzemeler 197 → 129 olarak birleştirildi, Meshopt ile 98.662 üçgenli model 11.430.008 bayt oldu. Aktif dosya `assets/models/MERKEZ_ANKARA_WEB_UPDATED.glb`; önceki optimize model yükleme yedeği olarak tutuluyor.
+
+Ayarlar → Işık → Gece lambaları aralığı %0–2000 (20 kat). Mevcut kayıtlar geçerli, varsayılan %100. Sarı/mor statik aydınlatma ve ampuller birlikte etkilenir; gündüz ışık çarpanları ayrı kalır. Web arayüzünde maksimum değer, gündüze dönüş ve Boyner rotası kontrol edildi. Sekiz otomatik test geçti. Kaynak Blender dosyasına yazılmadı.
